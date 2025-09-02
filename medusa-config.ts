@@ -12,5 +12,21 @@ module.exports = defineConfig({
       jwtSecret: process.env.JWT_SECRET || 'supersecret',
       cookieSecret: process.env.COOKIE_SECRET || 'supersecret',
     }
-  }
+  },
+  modules: [
+    {
+      // 新增payment provider
+      resolve: "@medusajs/medusa/payment",
+      options: {
+        providers: [
+          {
+            // 若此 provider 位於插件內，改為 plugin-name/providers/my-payment
+            resolve: "./src/modules/ecpayments",
+            id: "ecpay_credit_card",
+            options: {},
+          },
+        ],
+      },
+    },
+  ],
 })
