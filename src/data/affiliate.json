@@ -1,0 +1,95 @@
+{
+  "affiliates": [
+    {
+      "id": "aff_partner_1",
+      "name": "頂級聯盟夥伴",
+      "email": "top-partner@example.com",
+      "referral_code": "TOP123",
+      "commission_rate": 0.08,
+      "status": "active",
+      "total_earnings": 15500.00,
+      "pending_earnings": 2300.00,
+      "website": "https://top-partner.com",
+      "social_media": {
+        "facebook": "https://facebook.com/toppartner",
+        "instagram": "@toppartner"
+      },
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-12-01T00:00:00Z"
+    },
+    {
+      "id": "aff_partner_2",
+      "name": "優質聯盟夥伴",
+      "email": "quality-partner@example.com", 
+      "referral_code": "QUAL456",
+      "commission_rate": 0.06,
+      "status": "active",
+      "total_earnings": 8750.00,
+      "pending_earnings": 1200.00,
+      "website": "https://quality-partner.com",
+      "social_media": {
+        "youtube": "https://youtube.com/@qualitypartner",
+        "tiktok": "@qualitypartner"
+      },
+      "created_at": "2024-02-15T00:00:00Z",
+      "updated_at": "2024-11-20T00:00:00Z"
+    },
+    {
+      "id": "aff_partner_3",
+      "name": "新進聯盟夥伴",
+      "email": "new-partner@example.com",
+      "referral_code": "NEW789",
+      "commission_rate": 0.05,
+      "status": "pending",
+      "total_earnings": 0.00,
+      "pending_earnings": 0.00,
+      "website": "https://new-partner.com",
+      "social_media": {
+        "instagram": "@newpartner"
+      },
+      "created_at": "2024-12-01T00:00:00Z",
+      "updated_at": "2024-12-01T00:00:00Z"
+    }
+  ],
+  "applications": [
+    {
+      "id": "app_1",
+      "name": "申請人A",
+      "email": "applicant-a@example.com",
+      "website": "https://applicant-a.com",
+      "description": "我是一位專業的美髮部落客，擁有10萬粉絲",
+      "social_media": "Instagram: @hairblogger_a, YouTube: Hair Expert A",
+      "status": "pending",
+      "created_at": "2024-12-15T00:00:00Z",
+      "updated_at": "2024-12-15T00:00:00Z"
+    },
+    {
+      "id": "app_2",
+      "name": "申請人B", 
+      "email": "applicant-b@example.com",
+      "website": "https://beauty-tips-b.com",
+      "description": "經營美妝頻道5年，專注於髮型設計分享",
+      "social_media": "TikTok: @beauty_tips_b, Facebook: Beauty Tips B",
+      "status": "approved",
+      "created_at": "2024-11-30T00:00:00Z",
+      "updated_at": "2024-12-05T00:00:00Z"
+    }
+  ],
+  "commission_settings": {
+    "default_rate": 0.05,
+    "tier_rates": {
+      "bronze": 0.05,
+      "silver": 0.06,
+      "gold": 0.07,
+      "platinum": 0.08
+    },
+    "minimum_payout": 100.00,
+    "payout_schedule": "monthly"
+  },
+  "tracking_settings": {
+    "cookie_duration": 30,
+    "attribution_window": 7,
+    "click_tracking": true,
+    "conversion_tracking": true
+  }
+}
