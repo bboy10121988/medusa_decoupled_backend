@@ -21,6 +21,8 @@ import type {
   UpdatePaymentInput,
   UpdatePaymentOutput,
 } from "@medusajs/framework/types"
+import { v4 as uuidv4 } from "uuid"
+import { getECPayFormURL } from "./funcs"
 /**
  * ECPayCreditProviderService
  *
@@ -57,7 +59,12 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳一個物件，至少包含 `data` 欄位（會存入 PaymentSession 的 `data`）。
    */
   async initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
-    throw new Error("ECPayCreditProviderService.initiatePayment 尚未實作")
+    return {
+      id: uuidv4(),
+      data: {
+        form_url: getECPayFormURL()
+      }
+    }
   }
 
   /**
