@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  ecpay-medusa-service:
+    image: a6288678/ecpay-medusa-adapter:latest
+    restart: always
+    ports:
+      - "9327:8080"
+    environment:
+      RUN_PORT: "8080"
+
+      # 這裡要寫medusa webhook的網址 like:
+      # (macos): http://host.docker.internal:9000/custom-hooks/ecpay-callback
+      # (linux): http://localhost:9000/custom-hooks/ecpay-callback
+      # (remote): http://35.236.182.29:9000/custom-hooks/ecpay-callback
+
+      MEDUSA_DST: "http://localhost:9000/custom-hooks/ecpay-callback"

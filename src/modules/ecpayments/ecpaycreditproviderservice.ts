@@ -20,6 +20,7 @@ import type {
   RetrievePaymentOutput,
   UpdatePaymentInput,
   UpdatePaymentOutput,
+  PaymentSessionStatus
 } from "@medusajs/framework/types"
 import { v4 as uuidv4 } from "uuid"
 import { getECPayFormURL } from "./funcs"
@@ -77,7 +78,10 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳 `{ status, data }`；`status` 通常為 `authorized`，`data` 會存入 Payment 的 `data`。
    */
   async authorizePayment(input: AuthorizePaymentInput): Promise<AuthorizePaymentOutput> {
-    throw new Error("ECPayCreditProviderService.authorizePayment 尚未實作")
+    return{
+      status:"authorized" as PaymentSessionStatus,
+      data:{}
+    }
   }
 
   /**
@@ -90,7 +94,9 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳 `{ data }`；可回存第三方回傳的最新付款資料至 Payment 的 `data`。
    */
   async capturePayment(input: CapturePaymentInput): Promise<CapturePaymentOutput> {
-    throw new Error("ECPayCreditProviderService.capturePayment 尚未實作")
+    return {
+      data:input.data
+    }
   }
 
   /**
@@ -155,7 +161,9 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳 `{ data }`；可原樣回傳或附上第三方回應結果。
    */
   async deletePayment(input: DeletePaymentInput): Promise<DeletePaymentOutput> {
-    throw new Error("ECPayCreditProviderService.deletePayment 尚未實作")
+    return {
+      data: input.data
+    }
   }
 
   /**
@@ -173,7 +181,7 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
 
   /**
    * getWebhookActionAndData
-   *
+   * route: http://localhost:9000/hooks/payment/ecpay_credit_card_ecpay_credit_card
    * - 方法用途：處理第三方金流的 Webhook，並回傳應由 Medusa 採取的動作與所需資料。
    * - 參數說明：
    *   - `payload`: Webhook 原始負載（headers、rawData、解析後資料等）。
@@ -183,6 +191,67 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
   async getWebhookActionAndData(
     payload: ProviderWebhookPayload["payload"]
   ): Promise<WebhookActionResult> {
+
     throw new Error("ECPayCreditProviderService.getWebhookActionAndData 尚未實作")
+    // const data = payload.data
+    // let paymentSessionID: string = ""
+
+    // if (!data){
+    //   throw new Error("payload.data is empty")
+    // }
+
+    // if (!data["CustomField4"]){
+    //   throw new Error("Payment Session ID is missing")
+    // }else if (typeof data["CustomField4"] === "string") {
+    //   paymentSessionID = data["CustomField4"]
+    // } else {
+    //   paymentSessionID = `${data["CustomField4"]}`
+    // }
+
+    // if (!data["RtnCode"]){
+    //   throw new Error("RtnCode is missing")
+    // }
+
+    // // 除了成功以外，都不要更新訂單狀態
+    // switch (data["RtnCode"]) {
+    //   case "1":
+    //     break;
+    //   case "10300066":
+    //     // 「交易付款結果待確認中，請勿出貨」，請至廠商管理後台確認已付款完成再出貨。
+    //     throw new Error("交易付款結果待確認中，請勿出貨")
+    //   case "10100248":
+    //     // 「拒絕交易，請客戶聯繫發卡行確認原因」
+    //     throw new Error("拒絕交易，請客戶聯繫發卡行確認原因")
+    //   case "10100252":
+    //     // 「額度不足，請客戶檢查卡片額度或餘額」
+    //     throw new Error("額度不足，請客戶檢查卡片額度或餘額")
+    //   case "10100254":
+    //     // 「交易失敗，請客戶聯繫發卡行確認交易限制」
+    //     throw new Error("交易失敗，請客戶聯繫發卡行確認交易限制")
+    //   case "10100251":
+    //     // 「卡片過期，請客戶檢查卡片重新交易」
+    //     throw new Error("卡片過期，請客戶檢查卡片重新交易")
+    //   case "10100255":
+    //     // 「報失卡，請客戶更換卡片重新交易」
+    //     throw new Error("報失卡，請客戶更換卡片重新交易")
+    //   case "10100256":
+    //     // 「停用卡，請客戶更換卡片重新交易」
+    //     throw new Error("停用卡，請客戶更換卡片重新交易")
+    //   default:
+    //     // 其他錯誤代碼
+    //     throw new Error("未知錯誤，請聯繫客服")
+    // }
+
+    
+    // return {
+    //   action: "captured",
+    //   data: {
+    //     // assuming the session_id is stored in the metadata of the payment
+    //     // in the third-party provider
+    //     session_id: paymentSessionID,
+    //     amount: data["TradeAmt"]?new BigNumber(data["TradeAmt"] as number):0
+    //   }
+    // }
+    
   }
 }
