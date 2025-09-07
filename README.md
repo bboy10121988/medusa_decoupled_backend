@@ -32,6 +32,22 @@
   </a>
 </p>
 
+## deploy
+
+### ecpay-adapter
+佈署綠界金流的轉接器(ecpy-adapter)
+
+#### 用途
+因為medusajs webhook 無法支援post `form-data` 格式，所以設計了一個adapter
+
+#### Request流程
+`ecpay` [POST]`form-data` -> `ecpay-adapter` -> POST[application/json] -> `medusajs`
+
+#### 如何佈署
+- 到專案根目錄
+- 執行`docker compose -f ecpay-adapter.yaml up -d`
+
+
 ## Compatibility
 
 This starter is compatible with versions >= 2 of `@medusajs/medusa`. 
