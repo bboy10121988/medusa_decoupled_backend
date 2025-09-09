@@ -1371,8 +1371,10 @@
 "@medusajs/cart@2.9.0":
   version "2.9.0"
 
-"@medusajs/cli@2.9.0":
+"@medusajs/cli@^2.9.0", "@medusajs/cli@2.9.0":
   version "2.9.0"
+  resolved "https://registry.npmjs.org/@medusajs/cli/-/cli-2.9.0.tgz"
+  integrity sha512-djUwEIB7cWvStC7jK8WtHV1uFCTbrD3rGwBvEt6dswWz45aci5Ae0q8IZ46COAlR3XNYBAtBrNWEnqsNPowArg==
   dependencies:
     "@medusajs/telemetry" "2.9.0"
     "@medusajs/utils" "2.9.0"
