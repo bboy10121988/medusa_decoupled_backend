@@ -29,7 +29,7 @@ module.exports = defineConfig({
       },
     },
     {
-      // 新增檔案模組 - 本地檔案儲存
+      // 檔案服務模組
       resolve: "@medusajs/medusa/file",
       options: {
         providers: [
@@ -37,12 +37,13 @@ module.exports = defineConfig({
             resolve: "@medusajs/file-local",
             id: "local",
             options: {
-              upload_dir: "uploads",
-              backend_url: process.env.BACKEND_URL || "http://localhost:9000",
+              upload_dir: "static",
+              backend_url: "http://35.236.182.29:9000/static",
             },
           },
         ],
       },
     },
+
   ],
 })
