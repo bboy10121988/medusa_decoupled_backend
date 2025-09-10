@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   ecpay-medusa-service:
-    image: a6288678/ecpay-medusa-adapter:latest
+    image: a6288678/ecpay-medusa-adapter:v1.1.0
     restart: always
     ports:
       - "9327:8080"
