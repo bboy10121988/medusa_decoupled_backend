@@ -135,7 +135,7 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳 `{ data }`（如需回存第三方取消結果）。
    */
   async cancelPayment(input: CancelPaymentInput): Promise<CancelPaymentOutput> {
-    throw new Error("ECPayCreditProviderService.cancelPayment 尚未實作")
+    throw new Error("ECPayCreditProviderService.cancelPayment ")
   }
 
   /**
@@ -192,7 +192,7 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
     payload: ProviderWebhookPayload["payload"]
   ): Promise<WebhookActionResult> {
 
-    throw new Error("ECPayCreditProviderService.getWebhookActionAndData 尚未實作")
+    throw new Error("ECPayCreditProviderService.getWebhookActionAndData medusa 不支援ECPay Post Form格式")
     // const data = payload.data
     // let paymentSessionID: string = ""
 

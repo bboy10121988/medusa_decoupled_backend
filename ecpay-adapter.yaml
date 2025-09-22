@@ -14,4 +14,4 @@ services:
       # (linux): http://localhost:9000/custom-hooks/ecpay-callback
       # (remote): http://35.236.182.29:9000/custom-hooks/ecpay-callback
 
-      MEDUSA_DST: "http://localhost:9000/custom-hooks/ecpay-callback"
+      MEDUSA_DST: "http://35.236.182.29:9000/custom-hooks/ecpay-callback"
