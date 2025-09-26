@@ -40,27 +40,20 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
         }
 
         const data = body as EcpayCallbackBody
-        let cartID: string = ""
+
+
+        let orderID: string = ""
 
         if (!data.CustomField4){
-            throw new Error("CustomField4 (cart_id) is missing")
+            throw new Error("CustomField4 (order_id) is missing")
         }else{
-            cartID = data.CustomField4
+            orderID = data.CustomField4
         }
-
 
         if (data.RtnCode !== "1"){
             throw new Error("Unhandled RtnCode: " + data.RtnCode)
         }
         
-        const { result } = await completeCartWorkflow(req.scope).run({
-            input: { id:cartID }, // 只需要 cart 的 ID
-        })
-
-        console.log(action,"excute completeCartWorkflow, and get orderID result:",result)
-
-        const orderID = result.id
-
         // 正確：直接拿到 query 實例，呼叫 graph
         const query = req.scope.resolve("query")
 
