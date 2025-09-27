@@ -15,14 +15,35 @@ module.exports = defineConfig({
   },
   modules: [
     {
+      resolve: '@medusajs/medusa/auth',
+      options: {
+        providers: [
+          {
+            resolve: '@medusajs/auth-emailpass',
+            id: 'emailpass',
+            options: {},
+          },
+          {
+            resolve: '@medusajs/auth-google',
+            id: 'google',
+            options: {
+              clientId: process.env.GOOGLE_CLIENT_ID,
+              clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+              callbackUrl: process.env.GOOGLE_CALLBACK_URL,
+            },
+          },
+        ],
+      },
+    },
+    {
       // 新增payment provider
-      resolve: "@medusajs/medusa/payment",
+      resolve: '@medusajs/medusa/payment',
       options: {
         providers: [
           {
             // 若此 provider 位於插件內，改為 plugin-name/providers/my-payment
-            resolve: "./src/modules/ecpayments",
-            id: "ecpay_credit_card",
+            resolve: './src/modules/ecpayments',
+            id: 'ecpay_credit_card',
             options: {},
           },
         ],
@@ -30,15 +51,15 @@ module.exports = defineConfig({
     },
     {
       // 檔案服務模組
-      resolve: "@medusajs/medusa/file",
+      resolve: '@medusajs/medusa/file',
       options: {
         providers: [
           {
-            resolve: "@medusajs/file-local",
-            id: "local",
+            resolve: '@medusajs/file-local',
+            id: 'local',
             options: {
-              upload_dir: "static",
-              backend_url: "http://35.236.182.29:9000/static",
+              upload_dir: 'static',
+              backend_url: 'http://35.236.182.29:9000/static',
             },
           },
         ],
