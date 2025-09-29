@@ -26,3 +26,10 @@ build
 .medusa
 
 /static
+# 敏感檔案
+.env.local
+.env.backup.*
+oauth_*.json
+oauth_*.txt
+*session*.txt
+*cookies*.txt
