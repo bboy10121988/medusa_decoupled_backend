@@ -13,14 +13,14 @@ module.exports = defineConfig({
       cookieSecret: process.env.COOKIE_SECRET || 'supersecret',
       // 🔐 定義不同角色可使用的認證方法
       authMethodsPerActor: {
-        customer: ['emailpass'], // 顧客使用 Email/Password 登入
-        user: ['emailpass'],     // 管理員使用 Email/Password 登入
+        customer: ['emailpass', 'google'], // 顧客使用 Email/Password 或 Google 登入
+        user: ['emailpass'],               // 管理員使用 Email/Password 登入
       },
     }
   },
   modules: [
     {
-      resolve: '@medusajs/medusa/auth',
+      resolve: '@medusajs/auth',
       dependencies: [Modules.CACHE, ContainerRegistrationKeys.LOGGER],
       options: {
         providers: [
@@ -29,12 +29,26 @@ module.exports = defineConfig({
             resolve: '@medusajs/auth-emailpass',
             id: 'emailpass',
           },
+          // Google OAuth Provider
+          {
+            resolve: '@medusajs/auth-google',
+            id: 'google',
+            options: {
+              clientId: process.env.GOOGLE_CLIENT_ID,
+              clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+              callbackUrl: process.env.GOOGLE_CALLBACK_URL,
+            },
+          },
         ],
       },
     },
+    /* 不需要再顯式設定 API 路由，
+       Medusa 已經會自動從 src/api 目錄加載路由
+       參考 @medusajs/medusa/dist/loaders/api.js 中的邏輯
+       先刪除這個配置項，讓系統默認加載 */
     {
       // 新增payment provider
-      resolve: '@medusajs/medusa/payment',
+      resolve: '@medusajs/payment',
       options: {
         providers: [
           {
@@ -48,7 +62,7 @@ module.exports = defineConfig({
     },
     {
       // 檔案服務模組
-      resolve: '@medusajs/medusa/file',
+      resolve: '@medusajs/file',
       options: {
         providers: [
           {
@@ -64,11 +78,11 @@ module.exports = defineConfig({
     },
     {
       // 通知模組 - 用於密碼重置電子郵件
-      resolve: '@medusajs/medusa/notification',
+      resolve: '@medusajs/notification',
       options: {
         providers: [
           {
-            resolve: '@medusajs/medusa/notification-local',
+            resolve: '@medusajs/notification-local',
             id: 'local',
             options: {
               channels: ['email'],

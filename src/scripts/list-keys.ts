@@ -3,7 +3,8 @@ import { ExecArgs } from '@medusajs/framework/types'
 const listKeys = async function ({ container }: ExecArgs) {
   try {
     // 嘗試直接查詢資料庫
-    const dbClient = container.resolve('dbManager').getClient()
+    const dbManager = container.resolve('dbManager') as { getClient: () => any }
+    const dbClient = dbManager.getClient()
     const result = await dbClient.query('SELECT * FROM publishable_api_key')
     console.log('Database publishable keys:', result.rows)
     

@@ -32,8 +32,7 @@ export async function POST(
     }
 
     // 更新產品 metadata
-    await productModuleService.updateProducts({
-      id,
+    await productModuleService.updateProducts(id, {
       metadata: updatedMetadata
     })
 

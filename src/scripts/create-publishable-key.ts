@@ -1,7 +1,11 @@
 import { ExecArgs } from '@medusajs/framework/types'
 
 const createPublishableKey = async function ({ container }: ExecArgs) {
-  const publishableKeyModuleService = container.resolve('publishableKeyModuleService')
+  // 添加明確的類型宣告
+  const publishableKeyModuleService = container.resolve('publishableKeyModuleService') as {
+    listPublishableKeys: () => Promise<any[]>,
+    createPublishableKeys: (data: { title: string }) => Promise<any>
+  }
   
   try {
     // 先嘗試列出現有的 keys
