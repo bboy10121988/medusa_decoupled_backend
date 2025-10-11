@@ -5,11 +5,12 @@ export default async function authCustomerSync({
   event, 
   container 
 }: SubscriberArgs<any>) {
-  const logger = container.resolve('logger')
-  const customerModuleService = container.resolve('customerModuleService')
+  const logger = container.resolve('logger') as any
+  const customerModuleService = container.resolve('customerModuleService') as any
   
   try {
-    logger.info('🔐 Auth identity created event received:', { eventName: event.name, data: event.data })
+    logger.info('🔐 Auth identity created event received')
+    logger.info(JSON.stringify({ eventName: event.name, data: event.data }))
     
     // 檢查是否是 provider_identity 創建事件
     if (event.name === 'provider_identity.created') {
@@ -21,7 +22,8 @@ export default async function authCustomerSync({
         const firstName = user_metadata.given_name || user_metadata.name?.split(' ')[0] || ''
         const lastName = user_metadata.family_name || user_metadata.name?.split(' ').slice(1).join(' ') || ''
         
-        logger.info('🎯 Processing Google OAuth user:', { email, firstName, lastName, entity_id })
+        logger.info('🎯 Processing Google OAuth user')
+        logger.info(JSON.stringify({ email, firstName, lastName, entity_id }))
         
         // 檢查是否已經存在 customer 記錄
         const existingCustomers = await customerModuleService.listCustomers({ email })
@@ -46,7 +48,60 @@ export default async function authCustomerSync({
             entity_id 
           })
         } else {
-          logger.info('ℹ️ Customer already exists for email:', { email })
+          const existingCustomer = existingCustomers[0]
+          const tempEmailPatterns = [
+            'example@medusajs.com',
+            '@google.user',
+            '@tmp.medusa',
+          ]
+          const isTempEmail =
+            !existingCustomer.email ||
+            tempEmailPatterns.some((pattern) =>
+              existingCustomer.email.includes(pattern)
+            )
+
+          if (isTempEmail || existingCustomer.email !== email) {
+            logger.info('🔄 Updating existing customer with Google email', {
+              customerId: existingCustomer.id,
+              from: existingCustomer.email,
+              to: email,
+            })
+
+            await customerModuleService.updateCustomers(existingCustomer.id, {
+              email,
+              first_name: existingCustomer.first_name || firstName,
+              last_name: existingCustomer.last_name || lastName,
+              metadata: {
+                ...(existingCustomer.metadata || {}),
+                auth_provider: 'google',
+                google_entity_id: entity_id,
+                google_email: email,
+              },
+            })
+
+            logger.info('✅ Customer email synchronized with Google account', {
+              customerId: existingCustomer.id,
+              email,
+            })
+          } else if (
+            existingCustomer.metadata?.google_email !== email ||
+            existingCustomer.metadata?.auth_provider !== 'google'
+          ) {
+            logger.info('🛠 Updating Google metadata for existing customer', {
+              customerId: existingCustomer.id,
+            })
+
+            await customerModuleService.updateCustomers(existingCustomer.id, {
+              metadata: {
+                ...(existingCustomer.metadata || {}),
+                auth_provider: 'google',
+                google_entity_id: entity_id,
+                google_email: email,
+              },
+            })
+          } else {
+            logger.info('ℹ️ Customer already exists for email:', { email })
+          }
         }
       }
     }

@@ -1,0 +1,140 @@
+# Medusa v2 Google OAuth Authentication Issue
+
+## Problem Summary
+Google OAuth login succeeds but user authentication state is not persisted after page refresh, causing redirect to authenticated account page to fail.
+
+## Environment
+- **Frontend**: Next.js 15.5.3 (Port 8000)
+- **Backend**: Medusa v2 (Port 9000)
+- **Authentication**: Google OAuth + Medusa Customer API
+- **Cookie**: `_medusa_jwt`
+
+## Issue Flow
+1. ✅ Google OAuth authentication succeeds
+2. ✅ Backend API `/api/auth/google/gis-login` returns 200
+3. ✅ `_medusa_jwt` cookie is set correctly
+4. ✅ Page refresh is executed
+5. ❌ After refresh, `/api/auth/customer` returns 401 (Unauthorized)
+6. ❌ User remains in unauthenticated state instead of authenticated account page
+
+## Technical Implementation
+
+### Backend Authentication Route
+```javascript
+// /api/auth/google/gis-login
+const authResponse = await fetch(`${MEDUSA_BACKEND_URL}/auth/customer/google`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ id_token: credential })
+})
+
+const authData = await authResponse.json()
+
+// Set authentication cookie
+cookies().set({
+  name: "_medusa_jwt",
+  value: authData.token,
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
+  maxAge: 60 * 60 * 24 * 7, // 7 days
+  path: "/"
+})
+
+// Clear Next.js cache
+revalidatePath("/tw/account")
+revalidateTag("customer")
+```
+
+### Customer Authentication Check (FIXED)
+```javascript
+const fetchCustomer = async () => {
+  // CORRECT: Use /store/customers/me instead of /auth/customer
+  const response = await fetch(`${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/customers/me`, {
+    credentials: "include",
+    headers: getAuthHeaders(),
+  })
+  
+  if (!response.ok) {
+    console.log('User auth API response:', response.status)
+    return null
+  }
+  
+  return await response.json()
+}
+
+// Cookie helper function
+export function getAuthHeaders() {
+  const cookieStore = cookies()
+  const token = cookieStore.get("_medusa_jwt")?.value
+  
+  if (!token) {
+    return {}
+  }
+
+  return {
+    authorization: `Bearer ${token}`,
+  }
+}
+```
+
+## Console Logs
+
+**During successful login:**
+```
+✅ GIS login success: {success: true, token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...", user: {...}}
+🔄 Executing page refresh
+```
+
+**After page refresh:**
+```
+🔍 Checking user authentication state...
+GET http://localhost:8000/api/auth/customer 401 (Unauthorized)
+📡 User auth API response: 401
+❌ User authentication failed: 401
+```
+
+## Key Questions & OFFICIAL ANSWERS
+
+1. **Cookie Persistence**: ✅ **SOLVED** - Cookie alone is not enough. Medusa expects JWT in Authorization header, not just cookie.
+
+2. **Authentication Endpoint**: ✅ **SOLVED** - Use `/store/customers/me` NOT `/auth/customer` for checking authentication.
+
+3. **JWT Token Validation**: ✅ **SOLVED** - Must include `Authorization: Bearer <token>` header for backend validation.
+
+4. **Redirect Flow**: ✅ **SOLVED** - Only redirect after successfully fetching customer data from `/store/customers/me`.
+
+## OFFICIAL SOLUTION SUMMARY
+- **Root Cause**: Cookie is set but Authorization header is missing
+- **Fix 1**: Change endpoint from `/auth/customer` to `/store/customers/me`  
+- **Fix 2**: Ensure JWT token is sent in Authorization header for every request
+- **Fix 3**: Read cookie and set header on every page load
+- **Fix 4**: Only redirect after confirming authentication via `/store/customers/me`
+
+## Expected Behavior
+After successful Google OAuth login:
+1. User should be authenticated
+2. Page refresh should maintain authentication state  
+3. User should see authenticated account page content
+4. `/api/auth/customer` should return user data (200 status)
+
+## Current Behavior
+After successful Google OAuth login:
+1. Authentication appears successful initially
+2. Page refresh loses authentication state
+3. User sees unauthenticated login form
+4. `/api/auth/customer` returns 401 Unauthorized
+
+## Configuration Verified
+- ✅ Google Cloud Console OAuth configuration
+- ✅ `_medusa_jwt` cookie is being set
+- ✅ Cookie path, domain, security settings are correct
+- ✅ Medusa backend `/auth/customer/google` endpoint works
+- ✅ JWT token format appears correct
+
+## Request for Help
+Need guidance on:
+1. Proper Medusa v2 customer authentication cookie handling
+2. Correct way to call `/auth/customer` endpoint
+3. Any missing authentication configuration steps
+4. Best practices for post-OAuth redirect handling in Medusa v2

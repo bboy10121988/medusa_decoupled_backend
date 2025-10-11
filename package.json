@@ -32,8 +32,10 @@
     "@mikro-orm/knex": "6.4.3",
     "@mikro-orm/migrations": "6.4.3",
     "@mikro-orm/postgresql": "6.4.3",
+    "@so-ric/colorspace": "^1.1.6",
     "awilix": "^8.0.1",
     "formidable": "^3.5.4",
+    "google-auth-library": "^10.4.0",
     "pg": "^8.13.0"
   },
   "devDependencies": {

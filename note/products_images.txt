@@ -1,0 +1,398 @@
+# 產品詳情內容編輯功能 - 修改文檔
+
+## 概述
+使用 Medusa 產品的 `metadata` 欄位來存儲產品詳情內容和圖片，避免修改資料庫結構。
+
+## 修改檔案清單
+
+### 1. 新建後端 API 路由
+**檔案位置：** `/Users/raychou/tim-web/medusa_decoupled/backend_vm/medusa-backend/src/api/admin/products/[id]/detail-content/route.ts`
+
+**操作：** 新建檔案
+
+```typescript
+import type { 
+  MedusaRequest, 
+  MedusaResponse,
+} from "@medusajs/medusa"
+import { ProductService } from "@medusajs/medusa"
+
+export async function POST(
+  req: MedusaRequest,
+  res: MedusaResponse
+): Promise<void> {
+  const productService: ProductService = req.scope.resolve("productService")
+  const { id } = req.params
+  const { detail_content, detail_images } = req.body
+
+  try {
+    const product = await productService.retrieve(id)
+    
+    // 更新 metadata，保留其他現有的 metadata
+    const updatedMetadata = {
+      ...product.metadata,
+      detail_content: detail_content || '',
+      detail_images: JSON.stringify(detail_images || [])
+    }
+
+    const updatedProduct = await productService.update(id, {
+      metadata: updatedMetadata
+    })
+
+    res.json({
+      product: updatedProduct
+    })
+  } catch (error) {
+    res.status(400).json({
+      message: "Failed to update product detail content",
+      error: error.message
+    })
+  }
+}
+
+export async function GET(
+  req: MedusaRequest,
+  res: MedusaResponse
+): Promise<void> {
+  const productService: ProductService = req.scope.resolve("productService")
+  const { id } = req.params
+
+  try {
+    const product = await productService.retrieve(id)
+    
+    const detailContent = product.metadata?.detail_content || ''
+    const detailImages = product.metadata?.detail_images 
+      ? JSON.parse(product.metadata.detail_images as string)
+      : []
+
+    res.json({
+      detail_content: detailContent,
+      detail_images: detailImages
+    })
+  } catch (error) {
+    res.status(404).json({
+      message: "Product not found",
+      error: error.message
+    })
+  }
+}
+```
+
+### 2. 新建 Admin UI 編輯器組件
+**檔案位置：** `/Users/raychou/tim-web/medusa_decoupled/backend_vm/medusa-backend/src/admin/components/product-detail-editor.tsx`
+
+**操作：** 新建檔案
+
+```typescript
+import React, { useState, useEffect } from "react"
+import { Button, Input, Textarea } from "@medusajs/ui"
+import { useAdminCustomPost, useAdminCustomQuery } from "medusa-react"
+
+interface ProductDetailEditorProps {
+  productId: string
+}
+
+export const ProductDetailEditor: React.FC<ProductDetailEditorProps> = ({ 
+  productId 
+}) => {
+  const [content, setContent] = useState("")
+  const [images, setImages] = useState<string[]>([])
+  const [imageUrl, setImageUrl] = useState("")
+
+  // 獲取現有內容
+  const { data: detailData, refetch } = useAdminCustomQuery(
+    `/admin/products/${productId}/detail-content`,
+    [`product-detail-${productId}`]
+  )
+
+  // 更新內容
+  const { mutate: updateDetail, isLoading } = useAdminCustomPost(
+    `/admin/products/${productId}/detail-content`,
+    [`product-detail-${productId}`]
+  )
+
+  useEffect(() => {
+    if (detailData) {
+      setContent(detailData.detail_content || "")
+      setImages(detailData.detail_images || [])
+    }
+  }, [detailData])
+
+  const handleSave = () => {
+    updateDetail(
+      { detail_content: content, detail_images: images },
+      {
+        onSuccess: () => {
+          refetch()
+          console.log("詳情內容已更新")
+        }
+      }
+    )
+  }
+
+  const addImage = () => {
+    if (imageUrl.trim() && !images.includes(imageUrl.trim())) {
+      setImages([...images, imageUrl.trim()])
+      setImageUrl("")
+    }
+  }
+
+  const removeImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index))
+  }
+
+  return (
+    <div className="bg-white border rounded-lg p-4">
+      <h3 className="text-lg font-semibold mb-4">產品詳情內容</h3>
+      
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            詳情描述
+          </label>
+          <Textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="輸入產品詳情描述..."
+            rows={6}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            詳情圖片
+          </label>
+          
+          <div className="flex gap-2 mb-3">
+            <Input
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="輸入圖片 URL"
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              onClick={addImage}
+              disabled={!imageUrl.trim()}
+            >
+              新增圖片
+            </Button>
+          </div>
+
+          {images.length > 0 && (
+            <div className="space-y-2">
+              {images.map((image, index) => (
+                <div key={index} className="flex items-center gap-2 p-2 border rounded">
+                  <img
+                    src={image}
+                    alt={`詳情圖片 ${index + 1}`}
+                    className="w-16 h-16 object-cover rounded"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder-image.jpg"
+                    }}
+                  />
+                  <span className="flex-1 text-sm truncate">{image}</span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="small"
+                    onClick={() => removeImage(index)}
+                  >
+                    移除
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <Button
+          onClick={handleSave}
+          disabled={isLoading}
+          className="w-full"
+        >
+          {isLoading ? "儲存中..." : "儲存詳情內容"}
+        </Button>
+      </div>
+    </div>
+  )
+}
+```
+
+### 3. 新建 Admin UI Widget
+**檔案位置：** `/Users/raychou/tim-web/medusa_decoupled/backend_vm/medusa-backend/src/admin/widgets/product-detail-widget.tsx`
+
+**操作：** 新建檔案
+
+```typescript
+import type { WidgetConfig, ProductDetailsWidgetProps } from "@medusajs/admin"
+import { ProductDetailEditor } from "../components/product-detail-editor"
+
+const ProductDetailWidget = ({ product }: ProductDetailsWidgetProps) => {
+  return <ProductDetailEditor productId={product.id} />
+}
+
+export const config: WidgetConfig = {
+  zone: "product.details.side_after",
+}
+
+export default ProductDetailWidget
+```
+
+### 4. 新建前端詳情內容組件
+**檔案位置：** `/Users/raychou/tim-web/medusa_decoupled/frontend/src/modules/products/components/product-detail-content/index.tsx`
+
+**操作：** 新建檔案
+
+```typescript
+"use client"
+
+import Image from "next/image"
+import { HttpTypes } from "@medusajs/types"
+
+interface ProductDetailContentProps {
+  product: HttpTypes.StoreProduct
+}
+
+export default function ProductDetailContent({ product }: ProductDetailContentProps) {
+  // 從產品 metadata 中提取詳情內容
+  const detailContent = product.metadata?.detail_content as string || ''
+  const detailImagesRaw = product.metadata?.detail_images as string || '[]'
+  
+  let detailImages: string[] = []
+  try {
+    detailImages = JSON.parse(detailImagesRaw)
+  } catch {
+    detailImages = []
+  }
+
+  // 如果沒有內容就不顯示
+  if (!detailContent && detailImages.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="w-full max-w-4xl mx-auto py-8 px-4">
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        {/* 詳情文字內容 */}
+        {detailContent && (
+          <div className="mb-6">
+            <h3 className="text-xl font-semibold mb-4">產品詳細說明</h3>
+            <div className="prose max-w-none">
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {detailContent}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* 詳情圖片 */}
+        {detailImages.length > 0 && (
+          <div>
+            <h3 className="text-xl font-semibold mb-4">產品詳情圖片</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {detailImages.map((imageUrl, index) => (
+                <div key={index} className="relative aspect-square overflow-hidden rounded-lg">
+                  <Image
+                    src={imageUrl}
+                    alt={`產品詳情圖片 ${index + 1}`}
+                    fill
+                    className="object-cover hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder-image.jpg"
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+```
+
+### 5. 修改商品詳情頁面
+**檔案位置：** 需要找到前端的商品詳情頁面檔案
+
+**操作：** 修改現有檔案
+
+需要在現有檔案中添加以下內容：
+
+```typescript
+// 在 import 區域添加
+import ProductDetailContent from "@modules/products/components/product-detail-content"
+
+// 在 JSX return 中，找到適當位置（商品內容之後，推薦商品之前）添加：
+<div className="w-full mt-8">
+  <ProductDetailContent product={product} />
+</div>
+```
+
+## 實施步驟
+
+### 步驟 1：建立後端資料夾結構
+```bash
+# 在後端專案中建立必要的資料夾
+mkdir -p src/api/admin/products/[id]/detail-content
+mkdir -p src/admin/components
+mkdir -p src/admin/widgets
+```
+
+### 步驟 2：建立前端資料夾結構
+```bash
+# 在前端專案中建立必要的資料夾
+mkdir -p src/modules/products/components/product-detail-content
+```
+
+### 步驟 3：依序建立檔案
+1. 建立後端 API 路由檔案（檔案 1）
+2. 建立 Admin UI 編輯器組件（檔案 2）
+3. 建立 Admin UI Widget（檔案 3）
+4. 建立前端詳情內容組件（檔案 4）
+5. 修改商品詳情頁面（檔案 5）
+
+### 步驟 4：重啟服務
+```bash
+# 重啟後端服務
+cd /Users/raychou/tim-web/medusa_decoupled/backend_vm/medusa-backend
+npm run dev
+
+# 重啟前端服務
+cd /Users/raychou/tim-web/medusa_decoupled/frontend
+npm run dev
+```
+
+## 使用方式
+
+### Admin 端使用：
+1. 登入 Medusa Admin
+2. 進入產品管理頁面
+3. 選擇要編輯的產品
+4. 在右側欄位看到「產品詳情內容」區塊
+5. 輸入詳情描述和添加圖片 URL
+6. 點擊「儲存詳情內容」
+
+### 前端顯示：
+- 商品詳情頁會自動顯示編輯的內容
+- 位置在商品基本資訊下方、推薦商品上方
+- 包含詳情文字描述和圖片展示
+
+## 優勢
+
+✅ **無需資料庫遷移** - 使用現有 metadata 欄位  
+✅ **簡單實施** - 只需 4 個新檔案 + 1 個修改  
+✅ **向後兼容** - 不破壞現有功能  
+✅ **靈活擴展** - metadata 可存儲任何 JSON 資料  
+
+這個方案可以讓您快速實現產品詳情內容編輯功能，無需複雜的資料庫操作。
+
+## 注意事項
+
+1. 確保後端 Medusa 服務正在運行
+2. 確保前端 Next.js 服務正在運行
+3. 圖片 URL 需要是可訪問的網址
+4. 建議先在測試環境進行驗證
+5. 可以根據需要調整樣式和佈局
+

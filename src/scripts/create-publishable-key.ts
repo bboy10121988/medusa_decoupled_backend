@@ -1,4 +1,4 @@
-import { ExecArgs } from '@medusajs/medusa'
+import { ExecArgs } from '@medusajs/framework/types'
 
 const createPublishableKey = async function ({ container }: ExecArgs) {
   const publishableKeyModuleService = container.resolve('publishableKeyModuleService')

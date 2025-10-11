@@ -1,4 +1,4 @@
-import { ExecArgs } from '@medusajs/medusa'
+import { ExecArgs } from '@medusajs/framework/types'
 
 const listKeys = async function ({ container }: ExecArgs) {
   try {
