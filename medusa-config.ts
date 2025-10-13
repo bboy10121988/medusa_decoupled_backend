@@ -1,14 +1,28 @@
 import { loadEnv, defineConfig, Modules, ContainerRegistrationKeys } from '@medusajs/framework/utils'
 
+function requiredEnv(key: string): string {
+  const value = process.env[key]
+  if (!value) {
+    throw new Error(`Environment variable ${key} is required but not defined.`)
+  }
+  return value
+}
+
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
+
+// Default CORS settings
+const DEFAULT_STORE_CORS = 'http://localhost:8000'
+const DEFAULT_ADMIN_CORS = 'http://localhost:9000'
+const DEFAULT_AUTH_CORS = 'http://localhost:8000,http://localhost:9000'
 
 module.exports = defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     http: {
-      storeCors: process.env.STORE_CORS || 'http://localhost:3000',
-      adminCors: process.env.ADMIN_CORS || 'http://localhost:9000',
-      authCors: process.env.AUTH_CORS || 'http://localhost:3000,http://localhost:9000',
+      // CORS configuration for different parts of the application
+      storeCors: process.env.STORE_CORS || DEFAULT_STORE_CORS,
+      adminCors: process.env.ADMIN_CORS || DEFAULT_ADMIN_CORS,
+      authCors: process.env.AUTH_CORS || DEFAULT_AUTH_CORS,
       jwtSecret: process.env.JWT_SECRET || 'supersecret',
       cookieSecret: process.env.COOKIE_SECRET || 'supersecret',
       // 🔐 定義不同角色可使用的認證方法
@@ -34,9 +48,20 @@ module.exports = defineConfig({
             resolve: '@medusajs/auth-google',
             id: 'google',
             options: {
-              clientId: process.env.GOOGLE_CLIENT_ID,
-              clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-              callbackUrl: process.env.GOOGLE_CALLBACK_URL,
+              clientId: requiredEnv('GOOGLE_CLIENT_ID'),
+              clientSecret: requiredEnv('GOOGLE_CLIENT_SECRET'),
+              callbackUrl: requiredEnv('GOOGLE_CALLBACK_URL'),
+              // 🔧 強制重新授權和帳號選擇的最強參數組合
+              prompt: 'consent select_account',  // 同時強制同意和帳號選擇
+              access_type: 'offline',            // 離線訪問
+              approval_prompt: 'force',          // 強制重新授權
+              include_granted_scopes: 'false',   // 不包含已授權的範圍
+              // 添加自定義參數強制清除會話
+              authorizationParams: {
+            prompt: 'consent select_account',
+            access_type: 'offline',
+            approval_prompt: 'force'
+              }
             },
           },
         ],
@@ -47,7 +72,7 @@ module.exports = defineConfig({
        參考 @medusajs/medusa/dist/loaders/api.js 中的邏輯
        先刪除這個配置項，讓系統默認加載 */
     {
-      // 新增payment provider
+      // Payment provider module
       resolve: '@medusajs/payment',
       options: {
         providers: [
@@ -61,7 +86,7 @@ module.exports = defineConfig({
       },
     },
     {
-      // 檔案服務模組
+      // File service module
       resolve: '@medusajs/file',
       options: {
         providers: [
@@ -77,7 +102,7 @@ module.exports = defineConfig({
       },
     },
     {
-      // 通知模組 - 用於密碼重置電子郵件
+      // Notification module - used for password reset emails
       resolve: '@medusajs/notification',
       options: {
         providers: [
