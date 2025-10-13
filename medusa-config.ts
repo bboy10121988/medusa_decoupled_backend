@@ -10,10 +10,10 @@ function requiredEnv(key: string): string {
 
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 
-// Default CORS settings
-const DEFAULT_STORE_CORS = 'http://localhost:8000'
-const DEFAULT_ADMIN_CORS = 'http://localhost:9000'
-const DEFAULT_AUTH_CORS = 'http://localhost:8000,http://localhost:9000'
+// Default CORS settings for development and production
+const DEFAULT_STORE_CORS = 'http://localhost:8000,https://timsfantasyworld.com'
+const DEFAULT_ADMIN_CORS = 'http://localhost:9000,https://admin.timsfantasyworld.com,http://admin.timsfantasyworld.com'
+const DEFAULT_AUTH_CORS = 'http://localhost:8000,http://localhost:9000,https://timsfantasyworld.com,https://admin.timsfantasyworld.com'
 
 module.exports = defineConfig({
   projectConfig: {
@@ -95,7 +95,7 @@ module.exports = defineConfig({
             id: 'local',
             options: {
               upload_dir: 'static',
-              backend_url: 'http://35.236.182.29:9000/static',
+              backend_url: process.env.BACKEND_URL || 'http://localhost:9000/static',
             },
           },
         ],

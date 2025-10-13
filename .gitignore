@@ -27,9 +27,24 @@ build
 
 /static
 # 敏感檔案
+.env*
 .env.local
+.env.vm
 .env.backup.*
 oauth_*.json
 oauth_*.txt
 *session*.txt
 *cookies*.txt
+
+# 資料庫備份
+*.sql
+backup_*
+
+# 日誌檔案
+*.log
+backend.log
+
+# SSL 證書
+*.pem
+*.key
+*.crt
