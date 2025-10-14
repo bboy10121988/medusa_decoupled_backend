@@ -77,7 +77,7 @@ module.exports = defineConfig({
       options: {
         providers: [
           {
-            // 若此 provider 位於插件內，改為 plugin-name/providers/my-payment
+            // ECPay 信用卡支付
             resolve: './src/modules/ecpayments',
             id: 'ecpay_credit_card',
             options: {},
