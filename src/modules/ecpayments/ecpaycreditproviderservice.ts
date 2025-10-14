@@ -24,6 +24,10 @@ import type {
 } from "@medusajs/framework/types"
 import { v4 as uuidv4 } from "uuid"
 import { getECPayFormURL } from "./funcs"
+import { isInTaipeiTimeRange } from "../../internal/funcs"
+import { Service } from "../../internal/ecpays"
+import { ApiRequestCreditDoAction } from "../../internal/ecpays/models"
+
 /**
  * ECPayCreditProviderService
  *
@@ -60,10 +64,15 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳一個物件，至少包含 `data` 欄位（會存入 PaymentSession 的 `data`）。
    */
   async initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
+
+    // 
+    const tradeNo = Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("");
+
     return {
       id: uuidv4(),
       data: {
-        form_url: getECPayFormURL()
+        form_url: getECPayFormURL(),
+        trade_no: tradeNo
       }
     }
   }
@@ -109,7 +118,131 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳 `{ data }`；可回存第三方回傳的退款結果至 Payment 的 `data`。
    */
   async refundPayment(input: RefundPaymentInput): Promise<RefundPaymentOutput> {
-    throw new Error("ECPayCreditProviderService.refundPayment 尚未實作")
+
+    try{
+
+      // check: 時間不能是20:15 - 20:30
+      if (isInTaipeiTimeRange(new Date())){
+        throw new Error("ECPay 退款 在每日 20:15 - 20:30 之間無法使用，請稍後再試")
+      }
+
+      // ecpay api 必要資料：
+      // - MarchantID 特店代號: from .env
+      // - CreditRefundId 退款交易序號(gwsr) from input.data
+      // - CreditAmount 金額 from input.amount
+      // - CreditCheckCode 商家檢查碼 from .env
+
+      const creditCheckCode = parseInt(process.env.ECPAY_CREDIT_CHECK_CODE || "0")
+      const creditRefundId = parseInt(String(input.data?.credit_refund_id))
+      const creditAmount = Number(input.amount.toString())
+
+      if (creditCheckCode === 0){
+        console.log("process.env.ECPAY_CREDIT_CHECK_CODE", process.env.ECPAY_CREDIT_CHECK_CODE)
+        throw new Error("ECPAY_CREDIT_CHECK_CODE is not set in environment variables or invalid")
+      }
+
+      if (!creditRefundId || creditRefundId == 0 || creditAmount <= 0){
+        console.log("creditRefundId is empty or creditAmount is invalid:", creditRefundId,creditAmount)
+        throw new Error("Invalid creditRefundId or creditAmount")
+      }
+
+
+      // 1. 呼叫查詢信用卡單筆明細記錄API取得訂單狀態
+
+      const ecpayService = Service.createDefault()
+
+      const creditDetail = await ecpayService.getCreditDetail({
+        CreditCheckCode:creditCheckCode,
+        CreditRefundId: creditRefundId,
+        CreditAmount: creditAmount
+      })
+
+      // 2.判斷訂單close_data中最後一筆amout為正向的資料狀態
+      
+      if (creditDetail.RtnValue.close_data.length == 0){
+        console.log("creditDetail.RtnValue.close_data is empty")
+        throw new Error("信用卡退款查詢無法取得訂單狀態")
+      }
+
+      const closeData = creditDetail.RtnValue.close_data[creditDetail.RtnValue.close_data.length - 1]
+      const closeAmount:number = parseInt(closeData.amount)
+
+      if (closeAmount < 0){
+        console.log("The order has been fully refunded already.")
+        throw new Error("此筆訂單已經全額退款，無法再進行退款")
+      }
+
+      // 3. 查詢後，呼叫信用卡請退款API:
+      //   - [已授權]階段: 執行[放棄] (Action=N)可釋放信用卡佔額。
+      //   - [要關帳]階段:
+      //     - 全額退款: 先執行[取消] (Action=E)，接著進行[放棄] (Action=N)。
+      //     - 部份退款: 執行[退刷] (Action=R)。
+      //   - [已關帳]階段: 執行[退刷] (Action=R)。
+      //   - [操作取消]階段: 執行[放棄] (Action=N)可釋放信用卡佔額。
+    
+      // ecpay action 必要資料：
+      // - MerchantTradeNo
+
+      const merchantTradeNo = input.data?.merchant_trade_no;
+      const tradeNo = input.data?.trade_no;
+      const totalAmount = closeAmount
+
+      if (!merchantTradeNo){
+        console.log("merchantTradeNo is empty:", merchantTradeNo)
+        throw new Error("Invalid merchantTradeNo")
+      }
+
+      if (!tradeNo){
+        console.log("tradeNo is empty:", tradeNo)
+        throw new Error("Invalid tradeNo")
+      }
+
+      if (totalAmount <= 0){
+        console.log("totalAmount is invalid:", totalAmount)
+        throw new Error("Invalid totalAmount")
+      }
+
+      let actionParam: ApiRequestCreditDoAction = {
+        MerchantTradeNo:merchantTradeNo,
+        TradeNo: tradeNo,
+        TotalAmount: totalAmount,
+      } as ApiRequestCreditDoAction
+
+
+      switch (creditDetail.RtnValue.status){
+        case "已授權":
+          actionParam.Action = "N"
+          await ecpayService.doCreditAction(actionParam)
+          break
+        case "要關帳":
+          
+          actionParam.Action = "E"
+          await ecpayService.doCreditAction(actionParam)
+
+          actionParam.Action = "N"
+          await ecpayService.doCreditAction(actionParam)
+
+          break
+        case "已關帳":
+          actionParam.Action = "R"
+          await ecpayService.doCreditAction(actionParam)
+          break
+        case "操作取消":
+          actionParam.Action = "N"
+          await ecpayService.doCreditAction(actionParam)
+          break
+        default:
+          console.log("Unknown order status:", creditDetail.RtnValue.status)
+          throw new Error("Unknown order status, please contact customer service")
+      }
+
+      return { data: input.data }
+
+    }catch(error){
+      console.log("refundPayment error:", error)
+      throw error
+    }
+    
   }
 
   /**
@@ -148,6 +281,7 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳最新的付款資料物件，將覆蓋/合併至 Session 的 `data`。
    */
   async updatePayment(input: UpdatePaymentInput): Promise<UpdatePaymentOutput> {
+    
     throw new Error("ECPayCreditProviderService.updatePayment 尚未實作")
   }
 

@@ -1,31 +1,28 @@
 import type { MedusaRequest, MedusaResponse, MedusaNextFunction } from "@medusajs/framework/http"
-import { IncomingForm } from 'formidable'
-import { Readable } from 'stream'
-import * as querystring from 'querystring'
-import { completeCartWorkflow,markPaymentCollectionAsPaid,capturePaymentWorkflow } from "@medusajs/medusa/core-flows"
-import { ConstraintViolationException, t } from "@mikro-orm/core"
-import { resourceLimits } from "worker_threads"
+import { Modules,} from "@medusajs/framework/utils"
+import { capturePaymentWorkflow } from "@medusajs/medusa/core-flows"
 
-// Define strong type interface for ECPay callback
 interface EcpayCallbackBody {
     MerchantID?: string
     MerchantTradeNo?: string
     StoreID?: string
-    RtnCode?: string
+    RtnCode?: number
     RtnMsg?: string
     TradeNo?: string
-    TradeAmt?: string
+    TradeAmt?: number
     PaymentDate?: string
     PaymentType?: string
-    PaymentTypeChargeFee?: string
+    PaymentTypeChargeFee?: number
     TradeDate?: string
     PlatformID?: string
-    SimulatePaid?: string
+    SimulatePaid?: number
     CustomField1?: string
     CustomField2?: string
     CustomField3?: string
     CustomField4?: string
     CheckMacValue?: string
+    gwsr?: number
+    amount?: number
 }
 
 const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: MedusaNextFunction) => {
@@ -43,14 +40,34 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
 
 
         let orderID: string = ""
+        let paymentCollectionID: string = ""
+        let paymentSessionID: string = ""
 
-        if (!data.CustomField4){
-            throw new Error("CustomField4 (order_id) is missing")
+        if (!data.PaymentType || data.PaymentType !== "Credit_CreditCard"){
+            console.log(action,"Only Credit_CreditCard is supported, got:",data.PaymentType)
+            throw new Error("Only Credit_CreditCard is supported")
+        }
+        
+
+        if (!data.CustomField2){
+            throw new Error("CustomField2 (order_id) is missing")
         }else{
-            orderID = data.CustomField4
+            orderID = data.CustomField2
         }
 
-        if (data.RtnCode !== "1"){
+        if (!data.CustomField3){
+            throw new Error("CustomField3 (payment_collection_id) is missing")
+        }else{
+            paymentCollectionID = data.CustomField3
+        }
+
+        if (!data.CustomField4){
+            throw new Error("CustomField4 (payment_session_id) is missing")
+        }else{
+            paymentSessionID = data.CustomField4
+        }
+
+        if (data.RtnCode !== 1){
             throw new Error("Unhandled RtnCode: " + data.RtnCode)
         }
         
@@ -59,56 +76,59 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
 
         const { data: orders } = await query.graph({
             entity: "order",
-            fields: ["id", "payment_collections.id"],
+            fields: ["id", "payment_collections.*","payment_collections.payments.*"],
             filters: { id: orderID },
         })
 
-        console.log(action,"get order by orderID, orders:",orders)
+        console.log(action,"list orders : ",orders)
 
-        const thePaymentCollections = orders?.[0]?.payment_collections
+        const theOrder = orders?.find((order) => order!.id === orderID)
 
-        console.log(action,"get paymentCollections by orderID, paymentCollections:",thePaymentCollections)
-
-        const paymentCollectionID = thePaymentCollections?.[0]?.id
-
-        if (!paymentCollectionID){
-            res.status(200).send("1|OK")
-            return
+        if (!theOrder){
+            console.log(action,"order not found by orderID:",orderID)
+            throw new Error("Order not found")
         }
 
-        const { data: paymentCollections } = await query.graph({
-            entity: "payment_collection",
-            fields: ["id", "payments.id"],
-            filters: { id: paymentCollectionID },
-        })
+        console.log(action,"find order by orderID:",theOrder)
 
-        const thePaymentCollection = paymentCollections?.[0]
+        const thePaymentCollection = theOrder.payment_collections?.find((paymentCollection) => paymentCollection!.id === paymentCollectionID)
 
-        console.log(action,"thePaymentCollection:",thePaymentCollection)
+        if (!thePaymentCollection){
+            console.log(action,"paymentCollection not found by paymentCollectionID:",paymentCollectionID)
+            throw new Error("PaymentCollection not found")
+        }
 
-        const thePayments = thePaymentCollection?.payments
+        const thePayment = thePaymentCollection.payments?.find((payment) => payment?.payment_session_id === paymentSessionID)
 
-        console.log(action,"thePaymens:",thePayments)
+        if (!thePayment){
+            console.log(action,"payment not found by paymentSessionID:",paymentSessionID)
+            throw new Error("Payment not found")
+        }
 
-        const thePayment = thePayments?.[0]
+        const paymentModuleService = req.scope.resolve(Modules.PAYMENT)
 
-        console.log(action,"thePayment:",thePayment)
-
-        const paymentID = thePayment?.id
-
-        console.log(action,"paymentID",paymentID)
-
-        if (paymentID){
-
-            console.log(action,"excute capturePaymentWorkflow, paymentID:",paymentID)
-
-            await capturePaymentWorkflow(req.scope).run({
-                input: {
-                payment_id: paymentID,
-                // amount: "5000", // 可選：部分捕款，型別為 BigNumberInput
+        await paymentModuleService.updatePaymentSession(
+            {
+                id:paymentSessionID,
+                currency_code:thePayment.currency_code,
+                amount:thePayment.amount,
+                data:{
+                    payment_type: data.PaymentType,
+                    payment_status: data.RtnCode,
+                    merchant_trade_no: data.MerchantTradeNo,
+                    trade_no: data.TradeNo,
+                    credit_refund_id:data.gwsr
                 },
-            })
-        }
+            }
+        )
+
+        console.log(action,"excute capturePaymentWorkflow, paymentID:",thePayment.id)
+
+        await capturePaymentWorkflow(req.scope).run({
+            input: {
+                payment_id: thePayment.id,
+            },
+        })
 
     } catch (error) {
         console.error(action,"Error parsing request body:", error)
