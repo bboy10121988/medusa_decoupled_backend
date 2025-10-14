@@ -12451,6 +12451,7 @@ __metadata:
     prop-types: "npm:^15.8.1"
     react: "npm:^18.2.0"
     react-dom: "npm:^18.2.0"
+    resend: "npm:^6.1.2"
     ts-node: "npm:^10.9.2"
     typescript: "npm:^5.6.2"
     vite: "npm:^5.2.11"
@@ -14355,6 +14356,18 @@ __metadata:
   version: 2.0.0
   resolution: "require-main-filename@npm:2.0.0"
   checksum: 10c0/db91467d9ead311b4111cbd73a4e67fa7820daed2989a32f7023785a2659008c6d119752d9c4ac011ae07e537eb86523adff99804c5fdb39cd3a017f9b401bb6
+  languageName: node
+  linkType: hard
+
+"resend@npm:^6.1.2":
+  version: 6.1.2
+  resolution: "resend@npm:6.1.2"
+  peerDependencies:
+    "@react-email/render": "*"
+  peerDependenciesMeta:
+    "@react-email/render":
+      optional: true
+  checksum: 10c0/7a7a6099f82470d7fb8526bf18ea8563dca9bf93b245dfa4dcf12257e3e903a8b1cf73b7a1b7a7a77573837d67a9fba13a13ed2deb88f11c38e143a55ba45f99
   languageName: node
   linkType: hard
 

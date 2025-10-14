@@ -102,17 +102,18 @@ module.exports = defineConfig({
       },
     },
     {
-      // Notification module - used for password reset emails
+      // Notification module - 使用 Local 提供者（Resend 透過自定義訂閱者處理）
       resolve: '@medusajs/notification',
       options: {
         providers: [
+          // Local Provider - 實際郵件透過 Resend 在訂閱者中發送
           {
             resolve: '@medusajs/notification-local',
             id: 'local',
             options: {
               channels: ['email'],
             },
-          },
+          }
         ],
       },
     },

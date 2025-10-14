@@ -62,38 +62,164 @@ export default class ResendNotificationService {
     if (template === 'password-reset') {
       return '重置您的密碼'
     }
+    if (template === 'order-confirmation') {
+      return '訂單確認通知 - Tim\'s Fantasy World'
+    }
+    if (template === 'admin-new-order') {
+      return '新訂單通知 - 管理員'
+    }
     return '通知'
   }
 
   private getEmailContent(template: string, data: any): string {
-    if (template === 'password-reset') {
-      return `
-        <html>
-          <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #333;">重置您的密碼</h2>
-            <p>您好，</p>
-            <p>我們收到了重置您帳戶密碼的請求。請點擊下方按鈕來設置新密碼：</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${data.reset_url}" 
-                 style="background-color: #007cba; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
-                重置密碼
-              </a>
-            </div>
-            <p>如果上方按鈕無法點擊，請複製以下連結到瀏覽器：</p>
-            <p style="word-break: break-all; background-color: #f5f5f5; padding: 10px; border-radius: 4px;">
-              ${data.reset_url}
-            </p>
-            <p style="color: #666; font-size: 14px; margin-top: 30px;">
-              如果您沒有要求重置密碼，請忽略此郵件。此連結將在 24 小時後失效。
-            </p>
-            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-            <p style="color: #999; font-size: 12px;">
-              此郵件由系統自動發送，請勿回覆。
-            </p>
-          </body>
-        </html>
-      `
+    switch (template) {
+      case 'password-reset':
+        return this.generatePasswordResetTemplate(data)
+      case 'order-confirmation':
+        return this.generateOrderConfirmationTemplate(data)
+      case 'admin-new-order':
+        return this.generateAdminOrderTemplate(data)
+      default:
+        return `<p>您有一則新通知</p>`
     }
-    return `<p>您有一則新通知</p>`
+  }
+
+  private generatePasswordResetTemplate(data: any): string {
+    return `
+      <html>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #333;">重置您的密碼</h2>
+          <p>您好，</p>
+          <p>我們收到了重置您帳戶密碼的請求。請點擊下方按鈕來設置新密碼：</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${data.reset_url}" 
+               style="background-color: #007cba; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+              重置密碼
+            </a>
+          </div>
+          <p>如果上方按鈕無法點擊，請複製以下連結到瀏覽器：</p>
+          <p style="word-break: break-all; background-color: #f5f5f5; padding: 10px; border-radius: 4px;">
+            ${data.reset_url}
+          </p>
+          <p style="color: #666; font-size: 14px; margin-top: 30px;">
+            如果您沒有要求重置密碼，請忽略此郵件。此連結將在 24 小時後失效。
+          </p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+          <p style="color: #999; font-size: 12px;">
+            此郵件由系統自動發送，請勿回覆。
+          </p>
+        </body>
+      </html>
+    `
+  }
+
+  private generateOrderConfirmationTemplate(data: any): string {
+    const itemsList = data.items?.map(item => 
+      `<li>${item.title} x ${item.quantity} - $${(item.total / 100).toFixed(2)}</li>`
+    ).join('') || '<li>無商品資訊</li>'
+    
+    const address2Line = data.shipping_address?.address_2 ? `<p>${data.shipping_address.address_2}</p>` : ''
+    const shippingSection = data.shipping_address ? `
+      <div style="margin: 20px 0;">
+        <h3>收件地址</h3>
+        <p>${data.shipping_address.first_name} ${data.shipping_address.last_name}</p>
+        <p>${data.shipping_address.address_1}</p>
+        ${address2Line}
+        <p>${data.shipping_address.city}, ${data.shipping_address.postal_code}</p>
+      </div>
+    ` : ''
+    
+    return `
+      <html>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #333;">訂單確認 - Tim's Fantasy World</h2>
+          <p>親愛的 ${data.customer_name}，</p>
+          <p>感謝您的訂購！您的訂單已成功確認。</p>
+          
+          <div style="background-color: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
+            <h3 style="margin: 0 0 10px 0;">訂單詳情</h3>
+            <p><strong>訂單編號：</strong> ${data.order_id}</p>
+            <p><strong>訂單日期：</strong> ${data.order_date}</p>
+            <p><strong>訂單總額：</strong> ${data.currency} $${(data.total_amount / 100).toFixed(2)}</p>
+          </div>
+          
+          <div style="margin: 20px 0;">
+            <h3>商品清單</h3>
+            <ul>${itemsList}</ul>
+          </div>
+          
+          ${shippingSection}
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${data.order_url}" 
+               style="background-color: #007cba; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+              查看訂單詳情
+            </a>
+          </div>
+          
+          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+          <p style="color: #999; font-size: 12px;">
+            此郵件由 ${data.store_name} 自動發送，如有疑問請聯繫客服。
+          </p>
+        </body>
+      </html>
+    `
+  }
+
+  private generateAdminOrderTemplate(data: any): string {
+    const itemsList = data.items?.map(item => 
+      `<li>${item.title} x ${item.quantity} - $${(item.total / 100).toFixed(2)}</li>`
+    ).join('') || '<li>無商品資訊</li>'
+    
+    const companyLine = data.shipping_address?.company ? `<p><strong>公司：</strong> ${data.shipping_address.company}</p>` : ''
+    const address2Line = data.shipping_address?.address_2 ? `<p>${data.shipping_address.address_2}</p>` : ''
+    const shippingSection = data.shipping_address ? `
+      <div style="margin: 20px 0;">
+        <h3>收件地址</h3>
+        <p><strong>收件人：</strong> ${data.shipping_address.full_name}</p>
+        ${companyLine}
+        <p><strong>地址：</strong> ${data.shipping_address.address_1}</p>
+        ${address2Line}
+        <p>${data.shipping_address.city}, ${data.shipping_address.postal_code}</p>
+      </div>
+    ` : ''
+    
+    return `
+      <html>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #333;">🎉 新訂單通知</h2>
+          <p>您有一筆新訂單！</p>
+          
+          <div style="background-color: #e8f5e8; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #28a745;">
+            <h3 style="margin: 0 0 10px 0; color: #155724;">訂單資訊</h3>
+            <p><strong>訂單編號：</strong> ${data.order_id}</p>
+            <p><strong>訂單日期：</strong> ${data.order_date}</p>
+            <p><strong>客戶姓名：</strong> ${data.customer_name}</p>
+            <p><strong>客戶郵箱：</strong> ${data.customer_email}</p>
+            <p><strong>訂單總額：</strong> ${data.currency} $${(data.total_amount / 100).toFixed(2)}</p>
+            <p><strong>商品數量：</strong> ${data.items_count} 項商品</p>
+          </div>
+          
+          <div style="margin: 20px 0;">
+            <h3>商品清單</h3>
+            <ul>${itemsList}</ul>
+          </div>
+          
+          ${shippingSection}
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${data.admin_url}" 
+               style="background-color: #007cba; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
+              🛠️ 管理訂單
+            </a>
+          </div>
+          
+          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+          <p style="color: #999; font-size: 12px;">
+            此為系統自動通知郵件，請及時處理訂單。
+          </p>
+        </body>
+      </html>
+    `
   }
 }
