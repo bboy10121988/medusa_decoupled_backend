@@ -1,118 +1,123 @@
 import { SubscriberArgs, SubscriberConfig } from '@medusajs/framework'
 
-// 監聽認證身份創建事件，為 Google OAuth 用戶自動創建 customer 記錄
+// 簡單直接的 Google OAuth 用戶自動創建 customer 並關聯 auth_identity
 export default async function authCustomerSync({ 
   event, 
   container 
 }: SubscriberArgs<any>) {
-  const logger = container.resolve('logger') as any
-  const customerModuleService = container.resolve('customerModuleService') as any
+  const logger = container.resolve('logger')
+  const customerModuleService = container.resolve('customerModuleService')
   
   try {
-    logger.info('🔐 Auth identity created event received')
-    logger.info(JSON.stringify({ eventName: event.name, data: event.data }))
+    logger.info('🔐 Event received:', event.name)
+    logger.info('📊 Event data:', JSON.stringify(event.data, null, 2))
     
-    // 檢查是否是 provider_identity 創建事件
     if (event.name === 'provider_identity.created') {
-      const { provider, user_metadata, entity_id } = event.data
+      const providerIdentityId = event.data.id
       
-      // 只處理 Google OAuth
-      if (provider === 'google' && user_metadata?.email) {
-        const email = user_metadata.email
-        const firstName = user_metadata.given_name || user_metadata.name?.split(' ')[0] || ''
-        const lastName = user_metadata.family_name || user_metadata.name?.split(' ').slice(1).join(' ') || ''
+      if (!providerIdentityId) {
+        logger.warn('⚠️ No provider_identity ID in event')
+        return
+      }
+      
+      logger.info('🔍 Provider identity ID:', providerIdentityId)
+      
+      // 使用動態 import 來載入 pg 模組
+      const pg = await import('pg')
+      const { Pool } = pg.default || pg
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL
+      })
+      
+      try {
+        // 查詢 provider_identity 完整資料
+        const result = await pool.query(`
+          SELECT 
+            pi.id,
+            pi.entity_id,
+            pi.provider,
+            pi.user_metadata,
+            pi.auth_identity_id
+          FROM provider_identity pi
+          WHERE pi.id = $1
+        `, [providerIdentityId])
         
-        logger.info('🎯 Processing Google OAuth user')
-        logger.info(JSON.stringify({ email, firstName, lastName, entity_id }))
+        if (result.rows.length === 0) {
+          logger.warn('⚠️ Provider identity not found:', providerIdentityId)
+          return
+        }
         
-        // 檢查是否已經存在 customer 記錄
-        const existingCustomers = await customerModuleService.listCustomers({ email })
+        const pi = result.rows[0]
         
-        if (existingCustomers.length === 0) {
-          // 創建新的 customer 記錄
-          const customer = await customerModuleService.createCustomers({
-            email,
-            first_name: firstName,
-            last_name: lastName,
-            has_account: true,
-            metadata: {
-              google_entity_id: entity_id,
-              auth_provider: 'google',
-              created_via_oauth: true
-            }
-          })
+        logger.info('📦 Provider data:', {
+          provider: pi.provider,
+          entity_id: pi.entity_id,
+          auth_identity_id: pi.auth_identity_id,
+          has_metadata: !!pi.user_metadata,
+          email: pi.user_metadata?.email
+        })
+        
+        // 只處理 Google OAuth
+        if (pi.provider === 'google' && pi.user_metadata?.email) {
+          const email = pi.user_metadata.email
+          const firstName = pi.user_metadata.given_name || pi.user_metadata.name || ''
+          const lastName = pi.user_metadata.family_name || ''
           
-          logger.info('✅ Created customer for Google OAuth user:', { 
-            customerId: customer.id, 
-            email, 
-            entity_id 
+          logger.info('🎯 Creating customer:', { email, firstName, lastName })
+          
+          // 檢查是否已存在
+          const existingCustomers = await customerModuleService.listCustomers({ email })
+          
+          let customerId
+          
+          if (existingCustomers.length === 0) {
+            const customer = await customerModuleService.createCustomers({
+              email,
+              first_name: firstName,
+              last_name: lastName,
+              has_account: true,
+              metadata: {
+                google_entity_id: pi.entity_id,
+                google_name: pi.user_metadata.name,
+                google_picture: pi.user_metadata.picture,
+                auth_provider: 'google',
+                created_via_oauth: true
+              }
+            })
+            
+            customerId = customer.id
+            logger.info('✅ Customer created:', { id: customerId, email })
+          } else {
+            customerId = existingCustomers[0].id
+            logger.info('ℹ️ Customer already exists:', { id: customerId, email })
+          }
+          
+          // 關鍵：更新 auth_identity 的 app_metadata 來關聯 customer
+          await pool.query(`
+            UPDATE auth_identity
+            SET app_metadata = jsonb_build_object(
+              'actor_id', $1,
+              'actor_type', 'customer'
+            )
+            WHERE id = $2
+          `, [customerId, pi.auth_identity_id])
+          
+          logger.info('✅ Auth identity linked to customer:', {
+            auth_identity_id: pi.auth_identity_id,
+            customer_id: customerId
           })
         } else {
-          const existingCustomer = existingCustomers[0]
-          const tempEmailPatterns = [
-            'example@medusajs.com',
-            '@google.user',
-            '@tmp.medusa',
-          ]
-          const isTempEmail =
-            !existingCustomer.email ||
-            tempEmailPatterns.some((pattern) =>
-              existingCustomer.email.includes(pattern)
-            )
-
-          if (isTempEmail || existingCustomer.email !== email) {
-            logger.info('🔄 Updating existing customer with Google email', {
-              customerId: existingCustomer.id,
-              from: existingCustomer.email,
-              to: email,
-            })
-
-            await customerModuleService.updateCustomers(existingCustomer.id, {
-              email,
-              first_name: existingCustomer.first_name || firstName,
-              last_name: existingCustomer.last_name || lastName,
-              metadata: {
-                ...(existingCustomer.metadata || {}),
-                auth_provider: 'google',
-                google_entity_id: entity_id,
-                google_email: email,
-              },
-            })
-
-            logger.info('✅ Customer email synchronized with Google account', {
-              customerId: existingCustomer.id,
-              email,
-            })
-          } else if (
-            existingCustomer.metadata?.google_email !== email ||
-            existingCustomer.metadata?.auth_provider !== 'google'
-          ) {
-            logger.info('🛠 Updating Google metadata for existing customer', {
-              customerId: existingCustomer.id,
-            })
-
-            await customerModuleService.updateCustomers(existingCustomer.id, {
-              metadata: {
-                ...(existingCustomer.metadata || {}),
-                auth_provider: 'google',
-                google_entity_id: entity_id,
-                google_email: email,
-              },
-            })
-          } else {
-            logger.info('ℹ️ Customer already exists for email:', { email })
-          }
+          logger.info('ℹ️ Skipping - not Google or no email')
         }
+      } finally {
+        await pool.end()
       }
     }
   } catch (error) {
-    logger.error('❌ Error in auth customer sync:', { error: error.message, stack: error.stack })
+    logger.error('❌ Error in auth customer sync:', error)
   }
 }
 
 export const config: SubscriberConfig = {
-  event: [
-    'provider_identity.created',
-    'auth_identity.created'
-  ]
+  event: ['provider_identity.created']
 }
