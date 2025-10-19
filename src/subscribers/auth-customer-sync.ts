@@ -9,8 +9,8 @@ export default async function authCustomerSync({
   const customerModuleService = container.resolve('customerModuleService')
   
   try {
-    logger.info('🔐 Event received:', event.name)
-    logger.info('📊 Event data:', JSON.stringify(event.data, null, 2))
+    logger.info('🔐 Event received: ' + event.name)
+    logger.info('📊 Event data: ' + JSON.stringify(event.data, null, 2))
     
     if (event.name === 'provider_identity.created') {
       const providerIdentityId = event.data.id
@@ -20,7 +20,7 @@ export default async function authCustomerSync({
         return
       }
       
-      logger.info('🔍 Provider identity ID:', providerIdentityId)
+      logger.info('🔍 Provider identity ID: ' + providerIdentityId)
       
       // 使用動態 import 來載入 pg 模組
       const pg = await import('pg')
@@ -43,19 +43,19 @@ export default async function authCustomerSync({
         `, [providerIdentityId])
         
         if (result.rows.length === 0) {
-          logger.warn('⚠️ Provider identity not found:', providerIdentityId)
+          logger.warn('⚠️ Provider identity not found: ' + providerIdentityId)
           return
         }
         
         const pi = result.rows[0]
         
-        logger.info('📦 Provider data:', {
+        logger.info('📦 Provider data: ' + JSON.stringify({
           provider: pi.provider,
           entity_id: pi.entity_id,
           auth_identity_id: pi.auth_identity_id,
           has_metadata: !!pi.user_metadata,
           email: pi.user_metadata?.email
-        })
+        }))
         
         // 只處理 Google OAuth
         if (pi.provider === 'google' && pi.user_metadata?.email) {
@@ -63,15 +63,15 @@ export default async function authCustomerSync({
           const firstName = pi.user_metadata.given_name || pi.user_metadata.name || ''
           const lastName = pi.user_metadata.family_name || ''
           
-          logger.info('🎯 Creating customer:', { email, firstName, lastName })
+          logger.info('🎯 Creating customer: ' + JSON.stringify({ email, firstName, lastName }))
           
           // 檢查是否已存在
-          const existingCustomers = await customerModuleService.listCustomers({ email })
+          const existingCustomers = await (customerModuleService as any).listCustomers({ email })
           
           let customerId
           
           if (existingCustomers.length === 0) {
-            const customer = await customerModuleService.createCustomers({
+            const customer = await (customerModuleService as any).createCustomers({
               email,
               first_name: firstName,
               last_name: lastName,
@@ -86,10 +86,10 @@ export default async function authCustomerSync({
             })
             
             customerId = customer.id
-            logger.info('✅ Customer created:', { id: customerId, email })
+            logger.info('✅ Customer created: ' + JSON.stringify({ id: customerId, email }))
           } else {
             customerId = existingCustomers[0].id
-            logger.info('ℹ️ Customer already exists:', { id: customerId, email })
+            logger.info('ℹ️ Customer already exists: ' + JSON.stringify({ id: customerId, email }))
           }
           
           // 關鍵：更新 auth_identity 的 app_metadata 來關聯 customer
@@ -102,10 +102,10 @@ export default async function authCustomerSync({
             WHERE id = $2
           `, [customerId, pi.auth_identity_id])
           
-          logger.info('✅ Auth identity linked to customer:', {
+          logger.info('✅ Auth identity linked to customer: ' + JSON.stringify({
             auth_identity_id: pi.auth_identity_id,
             customer_id: customerId
-          })
+          }))
         } else {
           logger.info('ℹ️ Skipping - not Google or no email')
         }
