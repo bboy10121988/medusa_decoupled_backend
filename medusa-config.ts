@@ -12,7 +12,7 @@ loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 
 // Default CORS settings for development and production
 const DEFAULT_STORE_CORS = 'http://localhost:8000,https://timsfantasyworld.com'
-const DEFAULT_ADMIN_CORS = 'http://localhost:9000,https://admin.timsfantasyworld.com,http://admin.timsfantasyworld.com'
+const DEFAULT_ADMIN_CORS = 'http://localhost:9000,https://admin.timsfantasyworld.com,http://admin.timsfantasyworld.com,http://localhost:8000'
 const DEFAULT_AUTH_CORS = 'http://localhost:8000,http://localhost:9000,https://timsfantasyworld.com,https://admin.timsfantasyworld.com'
 
 module.exports = defineConfig({
@@ -52,8 +52,8 @@ module.exports = defineConfig({
               clientSecret: requiredEnv('GOOGLE_CLIENT_SECRET'),
               callbackUrl: requiredEnv('GOOGLE_CALLBACK_URL'), // 確保這個 URL 指向後端，例如 http://localhost:9000/auth/google/cb
               // 🔧 強制 Google 顯示帳號選擇畫面的參數，直接放在 options 層級
-              prompt: 'consent select_account',
-              access_type: 'offline',
+              // prompt: 'consent select_account',
+              // access_type: 'offline',
               // ✅ 正確的位置：verify 函式應定義在對應 provider 的 options 內部
               verify: async (container, req, accessToken, refreshToken, profile, done) => {
                 // 從 Google profile 中解析出使用者資料
@@ -61,7 +61,7 @@ module.exports = defineConfig({
 
 
                 console.log ("Google Auth: Profile data received", profile._json);
-                
+
                 // 如果 Google 沒有回傳 email，則拒絕登入
                 if (!email) {
                   return done(null, false, { message: 'Google profile did not return an email.' });
