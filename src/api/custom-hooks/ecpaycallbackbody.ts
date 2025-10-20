@@ -2,7 +2,7 @@ export default interface EcpayCallbackBody {
     MerchantID?: string
     MerchantTradeNo?: string
     StoreID?: string
-    RtnCode?: number
+    RtnCode?: string
     RtnMsg?: string
     TradeNo?: string
     TradeAmt?: number

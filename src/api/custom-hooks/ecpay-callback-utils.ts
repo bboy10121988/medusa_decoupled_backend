@@ -37,7 +37,7 @@ export function parseEcpayCallback(jsonData: string | any): EcpayCallbackBody {
  * 驗證 ECPay 回呼是否為成功的付款
  */
 export function isSuccessfulPayment(callbackData: EcpayCallbackBody): boolean {
-  return callbackData.RtnCode === 1 && callbackData.RtnMsg === 'paid';
+  return callbackData.RtnCode === "1" && callbackData.RtnMsg === 'paid';
 }
 
 /**

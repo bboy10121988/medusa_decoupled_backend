@@ -45,7 +45,7 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
             paymentSessionID = data.CustomField4
         }
 
-        if (data.RtnCode !== 1){
+        if (data.RtnCode !== "1"){
             throw new Error("Unhandled RtnCode: " + data.RtnCode)
         }
         

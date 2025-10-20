@@ -255,7 +255,7 @@ describe('EcpayCallbackBody Interface Tests', () => {
         MerchantID: '3320313',
         MerchantTradeNo: '34192885723839727052',
         StoreID: '',
-        RtnCode: 1,
+        RtnCode: "1",
         RtnMsg: 'paid',
         TradeNo: '2510171130360795',
         TradeAmt: 31,
