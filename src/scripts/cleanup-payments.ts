@@ -22,8 +22,9 @@ export default async function cleanupInvalidPayments({ container }: ExecArgs) {
     let invalidPaymentCount = 0
     
     for (const order of orders) {
-      if (order.payments && order.payments.length > 0) {
-        for (const payment of order.payments) {
+      const orderWithPayments = order as any
+      if (orderWithPayments.payments && orderWithPayments.payments.length > 0) {
+        for (const payment of orderWithPayments.payments) {
           // 檢查 payment 是否有效
           if (!payment || !payment.id) {
             invalidPaymentCount++

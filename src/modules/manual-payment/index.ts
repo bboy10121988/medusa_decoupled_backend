@@ -56,7 +56,9 @@ class ManualPaymentProvider extends AbstractPaymentProvider {
 
   async getPaymentStatus(input: any) {
     // For manual payments, status needs to be manually updated
-    return PaymentSessionStatus.PENDING
+    return {
+      status: PaymentSessionStatus.PENDING
+    }
   }
 
   async refundPayment(input: any) {

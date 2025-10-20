@@ -6,17 +6,20 @@ import path from "path"
 import routes from "./index" // 導入我們的自定義路由
 
 export default defineMiddlewares({
-  // 全局中間件 - 將應用到所有路由
-  global: [
-    // 註冊我們的自定義 API 路由
-    (req, res, next) => {
-      if (req.path.startsWith('/store/auth/google/me')) {
-        return routes(req.app, process.cwd(), {})(req, res, next)
-      }
-      next()
-    }
-  ],
   routes: [
+    {
+      matcher: "/store/auth/google/*",
+      method: ["GET", "POST"],
+      middlewares: [
+        // 註冊我們的自定義 API 路由
+        (req, res, next) => {
+          if (req.path.startsWith('/store/auth/google/me')) {
+            return routes(req.app, process.cwd(), {})(req, res, next)
+          }
+          next()
+        }
+      ],
+    },
     {
       matcher: "/custom-hooks/ecpay-callback",
       bodyParser: { preserveRawBody: true },
