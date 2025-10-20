@@ -119,6 +119,12 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    */
   async refundPayment(input: RefundPaymentInput): Promise<RefundPaymentOutput> {
 
+    const action: string = this.getIdentifier() + " refundPayment"
+
+    console.log(action,"start refundPayment with input:", input)
+
+    console.log(action,"refundPayment input.data:",input.data)
+    
     try{
 
       // check: 時間不能是20:15 - 20:30
