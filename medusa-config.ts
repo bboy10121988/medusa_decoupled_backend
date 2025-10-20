@@ -32,17 +32,6 @@ module.exports = defineConfig({
       },
     }
   },
-  admin: {
-    vite: (config) => {
-      config.server = config.server || {}
-      config.server.allowedHosts = [
-        'admin.timsfantasyworld.com',
-        'localhost',
-        '127.0.0.1'
-      ]
-      return config
-    }
-  },
   modules: [
     {
       resolve: '@medusajs/auth',
