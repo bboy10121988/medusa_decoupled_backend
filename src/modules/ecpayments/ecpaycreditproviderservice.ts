@@ -282,7 +282,10 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    */
   async updatePayment(input: UpdatePaymentInput): Promise<UpdatePaymentOutput> {
     
-    throw new Error("ECPayCreditProviderService.updatePayment 尚未實作")
+    return {
+      data: input.data
+    }
+    
   }
 
   /**
