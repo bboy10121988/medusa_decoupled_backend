@@ -1,8 +1,14 @@
-import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { 
+  MedusaRequest, 
+  MedusaResponse,
+  AuthenticatedMedusaRequest 
+} from "@medusajs/framework/http"
 import { Modules } from "@medusajs/framework/utils"
 
+export const AUTHENTICATE = true;
+
 export async function POST(
-  req: MedusaRequest,
+  req: AuthenticatedMedusaRequest,
   res: MedusaResponse
 ): Promise<void> {
   const { id } = req.params

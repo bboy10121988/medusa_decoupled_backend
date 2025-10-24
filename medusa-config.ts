@@ -12,7 +12,7 @@ loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 
 // Default CORS settings for development and production
 const DEFAULT_STORE_CORS = 'http://localhost:8000,https://timsfantasyworld.com'
-const DEFAULT_ADMIN_CORS = 'http://localhost:9000,https://admin.timsfantasyworld.com,http://admin.timsfantasyworld.com,http://localhost:8000'
+const DEFAULT_ADMIN_CORS = 'http://localhost:7001,http://localhost:9000,https://admin.timsfantasyworld.com,http://admin.timsfantasyworld.com,http://localhost:8000'
 const DEFAULT_AUTH_CORS = 'http://localhost:8000,http://localhost:9000,https://timsfantasyworld.com,https://admin.timsfantasyworld.com'
 
 module.exports = defineConfig({
@@ -23,8 +23,8 @@ module.exports = defineConfig({
       storeCors: process.env.STORE_CORS || DEFAULT_STORE_CORS,
       adminCors: process.env.ADMIN_CORS || DEFAULT_ADMIN_CORS,
       authCors: process.env.AUTH_CORS || DEFAULT_AUTH_CORS,
-      jwtSecret: process.env.JWT_SECRET || 'supersecret',
-      cookieSecret: process.env.COOKIE_SECRET || 'supersecret',
+      jwtSecret: 'medusa-jwt-secret-2024-production-key-secure',
+      cookieSecret: 'medusa-cookie-secret-2024-production-key-secure',
       // 🔐 定義不同角色可使用的認證方法
       authMethodsPerActor: {
         customer: ['emailpass', 'google'], // 顧客使用 Email/Password 或 Google 登入
