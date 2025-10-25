@@ -1,11 +1,13 @@
 import type { MedusaRequest, MedusaResponse, MedusaNextFunction } from "@medusajs/framework/http"
 import { Modules,} from "@medusajs/framework/utils"
-import { capturePaymentWorkflow } from "@medusajs/medusa/core-flows"
+import { capturePaymentWorkflow,updateOrderWorkflow } from "@medusajs/medusa/core-flows"
 import EcpayCallbackBody from "./ecpaycallbackbody"
 
 const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: MedusaNextFunction) => {
     
     const action: string = "ecpayCallBack"
+    
+    console.log(action,"Received ECPay callback",req.body)
     
     try {
         const body = req.body
@@ -15,6 +17,8 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
         }
 
         const data = body as EcpayCallbackBody
+
+        console.log(action,"Parsed ECPay callback data:",data)
 
 
         let orderID: string = ""
@@ -45,9 +49,9 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
             paymentSessionID = data.CustomField4
         }
 
-        if (data.RtnCode !== "1"){
-            throw new Error("Unhandled RtnCode: " + data.RtnCode)
-        }
+        // if (data.RtnCode !== "1"){
+        //     throw new Error("Unhandled RtnCode: " + data.RtnCode)
+        // }
         
         // 正確：直接拿到 query 實例，呼叫 graph
         const query = req.scope.resolve("query")
@@ -106,11 +110,33 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
 
         console.log(action,"excute capturePaymentWorkflow, paymentID:",thePayment.id)
 
-        await capturePaymentWorkflow(req.scope).run({
-            input: {
-                payment_id: thePayment.id,
-            },
+        let theMetadata = {
+            payment_type: "ecpayment",
+            payment_code: data.RtnCode,
+            payment_msg: data.RtnMsg,
+            payment_status: "unknown",
+        }
+
+        if (data.RtnCode === "1"){
+            await capturePaymentWorkflow(req.scope).run({
+                input: {
+                    payment_id: thePayment.id,
+                    amount: data.amount
+                },
+            })
+            theMetadata.payment_status = "success"
+        }else{
+            theMetadata.payment_status = "failed"
+        }
+
+        await updateOrderWorkflow(req.scope).run({
+            input:{
+                id: orderID,
+                user_id: "ecpayment callback",
+                metadata:theMetadata
+            }
         })
+        
 
     } catch (error) {
         console.error(action,"Error parsing request body:", error)
