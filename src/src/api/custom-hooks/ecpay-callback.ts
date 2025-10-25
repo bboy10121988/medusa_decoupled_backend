@@ -11,7 +11,7 @@ interface EcpayCallbackBody {
     MerchantID?: string
     MerchantTradeNo?: string
     StoreID?: string
-    RtnCode?: string
+    RtnCode?: number
     RtnMsg?: string
     TradeNo?: string
     TradeAmt?: string
@@ -31,6 +31,8 @@ interface EcpayCallbackBody {
 const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: MedusaNextFunction) => {
     
     const action: string = "ecpayCallBack"
+
+    console.log(action,"Received ECPay callback",req.body)
     
     try {
         const body = req.body
@@ -122,7 +124,7 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
                 payment_status: "unknown",
             }
 
-            if (data.RtnCode === "1"){
+            if (data.RtnCode === 1){
                 console.log(action,"excute capturePaymentWorkflow, paymentID:",paymentID)
                 await capturePaymentWorkflow(req.scope).run({
                         input: {
