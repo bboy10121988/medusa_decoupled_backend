@@ -91,11 +91,15 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
                 currency_code:thePayment.currency_code,
                 amount:thePayment.amount,
                 data:{
+                    type: data.PaymentType,
+                    rtn_code: data.RtnCode,
+                    amount: data.amount,
                     payment_type: data.PaymentType,
                     payment_status: data.RtnCode,
                     merchant_trade_no: data.MerchantTradeNo,
                     trade_no: data.TradeNo,
-                    credit_refund_id:data.gwsr
+                    credit_refund_id:data.gwsr,
+                    status: "authorized"
                 },
             }
         )

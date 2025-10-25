@@ -67,12 +67,13 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
 
     // 
     const tradeNo = Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("");
-
+    
     return {
       id: uuidv4(),
       data: {
         form_url: getECPayFormURL(),
-        trade_no: tradeNo
+        trade_no: tradeNo,
+        ...input.data
       }
     }
   }
@@ -89,7 +90,7 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
   async authorizePayment(input: AuthorizePaymentInput): Promise<AuthorizePaymentOutput> {
     return{
       status:"authorized" as PaymentSessionStatus,
-      data:{}
+      data:input.data
     }
   }
 
@@ -151,7 +152,6 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
         console.log("creditRefundId is empty or creditAmount is invalid:", creditRefundId,creditAmount)
         throw new Error("Invalid creditRefundId or creditAmount")
       }
-
 
       // 1. 呼叫查詢信用卡單筆明細記錄API取得訂單狀態
 
@@ -261,7 +261,100 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳第三方付款的資料物件。
    */
   async retrievePayment(input: RetrievePaymentInput): Promise<RetrievePaymentOutput> {
-    throw new Error("ECPayCreditProviderService.retrievePayment 尚未實作")
+
+    const action = this.getIdentifier() + " retrievePayment"
+
+    let data = input.data
+
+    console.log(action,"start retrievePayment with input:", input)
+
+    console.log(action,"retrievePayment input.data:",input.data)
+
+    const tradeNo = input.data?.trade_no
+    const creditCheckCode = parseInt(process.env.ECPAY_CREDIT_CHECK_CODE || "0")
+    const creditRefundId = parseInt(String(input.data?.credit_refund_id))
+    const creditAmount = Number(input.data?.amount)
+
+    if (!tradeNo){
+      throw new Error("ECPayCreditProviderService.retrievePayment trade_no is missing")
+    }
+
+    if (!creditCheckCode || creditCheckCode === 0){
+      console.log("process.env.ECPAY_CREDIT_CHECK_CODE", process.env.ECPAY_CREDIT_CHECK_CODE)
+      throw new Error("ECPAY_CREDIT_CHECK_CODE is not set in environment variables or invalid")
+    }
+
+    if (!creditRefundId || creditRefundId == 0 || creditAmount <= 0){
+      console.log("creditRefundId is empty or creditAmount is invalid:", creditRefundId,creditAmount)
+      throw new Error("Invalid creditRefundId or creditAmount")
+    }
+
+    if (!creditAmount || creditAmount <= 0){
+      throw new Error("ECPayCreditProviderService.retrievePayment amount is missing or invalid")
+    }
+
+
+    try{
+
+
+      const ecpayService = Service.createDefault()
+
+      const creditDetail = await ecpayService.getCreditDetail({
+        CreditCheckCode:creditCheckCode,
+        CreditRefundId: creditRefundId,
+        CreditAmount: creditAmount
+      })
+
+      console.log(action,"getCreditDetail result:", creditDetail)
+      console.log(action,"creditDetail.RtnValue:", creditDetail.RtnValue)
+      console.log(action,"creditDetail.RtnValue.close_data:", creditDetail.RtnValue.close_data)
+
+      let status = "unknown"
+
+      if (creditDetail.RtnValue.close_data.length == 0){
+        switch (creditDetail.RtnValue.status){
+          case "已取消":
+            status = "canceled"
+            break
+          case "未授權":
+            status = "requires_more"
+            break
+          case "已授權":
+            status = "authorized"
+            break
+        }
+      }else{
+
+        switch (creditDetail.RtnValue.status){
+          case "已關帳":
+            status = "captured"
+            break
+          case "已取消":
+            status = "canceled"
+            break
+          case "操作取消":
+            status = "canceled"
+            break
+        }
+
+      }
+
+      data = {
+        ...data,
+        status: status,
+      }
+
+      console.log(action,"retrievePayment final data:", data)
+
+      return {
+        data: data
+      }
+
+    }catch(error){
+      console.log("retrievePayment error:", error)
+      throw error
+    }
+
   }
 
   /**
@@ -274,7 +367,9 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳 `{ data }`（如需回存第三方取消結果）。
    */
   async cancelPayment(input: CancelPaymentInput): Promise<CancelPaymentOutput> {
-    throw new Error("ECPayCreditProviderService.cancelPayment ")
+    return {
+      data: input.data
+    }
   }
 
   /**
@@ -287,7 +382,6 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳最新的付款資料物件，將覆蓋/合併至 Session 的 `data`。
    */
   async updatePayment(input: UpdatePaymentInput): Promise<UpdatePaymentOutput> {
-    
     return {
       data: input.data
     }
@@ -319,7 +413,14 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳 `{ status, data? }`；`status` 可能為 `pending`、`authorized`、`captured`、`canceled` 等。
    */
   async getPaymentStatus(input: GetPaymentStatusInput): Promise<GetPaymentStatusOutput> {
-    throw new Error("ECPayCreditProviderService.getPaymentStatus 尚未實作")
+    
+    const status: PaymentSessionStatus = input.data?.status as PaymentSessionStatus || "pending"
+  
+    return {
+      status: status,
+      data: input.data
+    }
+
   }
 
   /**
@@ -334,6 +435,8 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
   async getWebhookActionAndData(
     payload: ProviderWebhookPayload["payload"]
   ): Promise<WebhookActionResult> {
+
+    // const data = payload.data as 
 
     throw new Error("ECPayCreditProviderService.getWebhookActionAndData medusa 不支援ECPay Post Form格式")
     // const data = payload.data
