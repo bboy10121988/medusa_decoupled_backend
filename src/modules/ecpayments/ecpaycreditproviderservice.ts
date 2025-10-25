@@ -66,8 +66,16 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
   async initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
 
     // 
+    const action: string = this.getIdentifier() + " initiatePayment"
+
+    console.log(action,"start initiatePayment with input:", input)
+
+    console.log(action,"initiatePayment input.data:",input.data)
+    
     const tradeNo = Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("");
     
+
+
     return {
       id: uuidv4(),
       data: {
@@ -88,6 +96,12 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳 `{ status, data }`；`status` 通常為 `authorized`，`data` 會存入 Payment 的 `data`。
    */
   async authorizePayment(input: AuthorizePaymentInput): Promise<AuthorizePaymentOutput> {
+
+    const action: string = this.getIdentifier() + " authorizePayment"
+    console.log(action,"start authorizePayment with input:", input)
+    
+    console.log(action,"authorizePayment input.data:",input.data)
+
     return{
       status:"authorized" as PaymentSessionStatus,
       data:input.data
@@ -104,6 +118,11 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳 `{ data }`；可回存第三方回傳的最新付款資料至 Payment 的 `data`。
    */
   async capturePayment(input: CapturePaymentInput): Promise<CapturePaymentOutput> {
+
+    const action: string = this.getIdentifier() + " capturePayment"
+    console.log(action,"start capturePayment with input:", input)
+    
+    console.log(action,"capturePayment input.data:",input.data)
     return {
       data:input.data
     }
@@ -367,6 +386,9 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳 `{ data }`（如需回存第三方取消結果）。
    */
   async cancelPayment(input: CancelPaymentInput): Promise<CancelPaymentOutput> {
+    const action: string = this.getIdentifier() + " cancelPayment"
+    console.log(action,"start cancelPayment with input:", input)
+    console.log(action,"cancelPayment input.data:",input.data)
     return {
       data: input.data
     }
@@ -382,6 +404,10 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳最新的付款資料物件，將覆蓋/合併至 Session 的 `data`。
    */
   async updatePayment(input: UpdatePaymentInput): Promise<UpdatePaymentOutput> {
+    const action: string = this.getIdentifier() + " updatePayment"
+    console.log(action,"start updatePayment with input:", input)
+    console.log(action,"updatePayment input.data:",input.data)
+
     return {
       data: input.data
     }
@@ -398,6 +424,9 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳 `{ data }`；可原樣回傳或附上第三方回應結果。
    */
   async deletePayment(input: DeletePaymentInput): Promise<DeletePaymentOutput> {
+    const action: string = this.getIdentifier() + " deletePayment"
+    console.log(action,"start deletePayment with input:", input)
+    console.log(action,"deletePayment input.data:",input.data)
     return {
       data: input.data
     }
@@ -413,8 +442,15 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    *   - 回傳 `{ status, data? }`；`status` 可能為 `pending`、`authorized`、`captured`、`canceled` 等。
    */
   async getPaymentStatus(input: GetPaymentStatusInput): Promise<GetPaymentStatusOutput> {
+
     
+    const action: string = this.getIdentifier() + " getPaymentStatus"
+    
+    console.log(action,"start getPaymentStatus with input:", input)
+    console.log(action,"getPaymentStatus input.data:",input.data)
+
     const status: PaymentSessionStatus = input.data?.status as PaymentSessionStatus || "pending"
+
   
     return {
       status: status,
@@ -436,6 +472,8 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
     payload: ProviderWebhookPayload["payload"]
   ): Promise<WebhookActionResult> {
 
+    const action: string = this.getIdentifier() + " getWebhookActionAndData"
+    console.log(action,"start getWebhookActionAndData with payload:", payload)
     // const data = payload.data as 
 
     throw new Error("ECPayCreditProviderService.getWebhookActionAndData medusa 不支援ECPay Post Form格式")
