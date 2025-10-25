@@ -2,7 +2,7 @@ import type { MedusaRequest, MedusaResponse, MedusaNextFunction } from "@medusaj
 import { IncomingForm } from 'formidable'
 import { Readable } from 'stream'
 import * as querystring from 'querystring'
-import { completeCartWorkflow,markPaymentCollectionAsPaid,capturePaymentWorkflow } from "@medusajs/medusa/core-flows"
+import { completeCartWorkflow,markPaymentCollectionAsPaid,capturePaymentWorkflow,cancelOrderWorkflow,updateOrderWorkflow } from "@medusajs/medusa/core-flows"
 import { ConstraintViolationException, t } from "@mikro-orm/core"
 import { resourceLimits } from "worker_threads"
 
@@ -49,9 +49,7 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
         }
 
 
-        if (data.RtnCode !== "1"){
-            throw new Error("Unhandled RtnCode: " + data.RtnCode)
-        }
+        
         
         const { result } = await completeCartWorkflow(req.scope).run({
             input: { id:cartID }, // 只需要 cart 的 ID
@@ -72,7 +70,17 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
 
         console.log(action,"get order by orderID, orders:",orders)
 
-        const thePaymentCollections = orders?.[0]?.payment_collections
+        const theOrder = orders?.[0]
+
+        console.log(action,"theOrder:",theOrder)
+
+        if (!theOrder){
+            throw new Error("Order not found for orderID: " + orderID)
+        }
+
+        
+
+        const thePaymentCollections = theOrder?.payment_collections
 
         console.log(action,"get paymentCollections by orderID, paymentCollections:",thePaymentCollections)
 
@@ -107,14 +115,35 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
 
         if (paymentID){
 
-            console.log(action,"excute capturePaymentWorkflow, paymentID:",paymentID)
+            let theMetadata = {
+                payment_type: "ecpayment",
+                payment_code: data.RtnCode,
+                payment_msg: data.RtnMsg,
+                payment_status: "unknown",
+            }
 
-            await capturePaymentWorkflow(req.scope).run({
-                input: {
-                payment_id: paymentID,
-                // amount: "5000", // 可選：部分捕款，型別為 BigNumberInput
-                },
+            if (data.RtnCode === "1"){
+                console.log(action,"excute capturePaymentWorkflow, paymentID:",paymentID)
+                await capturePaymentWorkflow(req.scope).run({
+                        input: {
+                        payment_id: paymentID,
+                        amount: data.TradeAmt ? parseInt(data.TradeAmt) : undefined,
+                    },
+                })
+                theMetadata.payment_status = "success"
+            }else{
+                theMetadata.payment_status = "failed"
+            }
+
+            console.log(action,"excute cancelOrderWorkflow, paymentID:",paymentID)
+            await updateOrderWorkflow(req.scope).run({
+                input:{
+                    id: orderID,
+                    user_id: "ecpayment callback",
+                    metadata:theMetadata
+                }
             })
+            
         }
 
     } catch (error) {
