@@ -139,12 +139,15 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
    */
   async refundPayment(input: RefundPaymentInput): Promise<RefundPaymentOutput> {
 
+    // 由於 input.data不會在放任何有用的資訊，我們需要把這個payment的order.metadata撈出來用
+
     const action: string = this.getIdentifier() + " refundPayment"
 
     console.log(action,"start refundPayment with input:", input)
 
     console.log(action,"refundPayment input.data:",input.data)
-    
+
+
     try{
 
       // check: 時間不能是20:15 - 20:30
@@ -408,8 +411,15 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
     console.log(action,"start updatePayment with input:", input)
     console.log(action,"updatePayment input.data:",input.data)
 
+    
+    const existingData = input.data || {}
+
+    const updatedData = {
+      ...existingData,
+    }
+
     return {
-      data: input.data
+      data: updatedData
     }
     
   }

@@ -90,11 +90,15 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
 
         const paymentModuleService = req.scope.resolve(Modules.PAYMENT)
 
+        // 試驗証明：updatePaymentSession根本一點屁用沒有，裡面的data只有在init的時候可以何存，之後的更新都不會影響到payment的data欄位
+        // 只好把原本data的地方直接放到order的metadata裡面去
+        
         await paymentModuleService.updatePaymentSession(
             {
                 id:paymentSessionID,
                 currency_code:thePayment.currency_code,
                 amount:thePayment.amount,
+                metadata:{},
                 data:{
                     type: data.PaymentType,
                     rtn_code: data.RtnCode,
@@ -117,10 +121,15 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
                 id: orderID,
                 user_id: handler,
                 metadata:{
-                    payment_type: "ecpayment",
+                    payment_source: "ecpay",
+                    payment_type: data.PaymentType,
                     payment_code: data.RtnCode,
                     payment_msg: data.RtnMsg,
                     payment_status: data.RtnCode === "1" ? "success" : "failed",
+                    payment_amount: data.amount,
+                    merchant_trade_no: data.MerchantTradeNo,
+                    trade_no: data.TradeNo,
+                    credit_refund_id:data.gwsr,
                 }
             }
         })
