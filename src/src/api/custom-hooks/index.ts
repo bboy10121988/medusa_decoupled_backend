@@ -1,1 +1,1 @@
-export { ecpayCallBack } from "./ecpay-callback"
+// export { ecpayCallBack } from "./ecpay-callback"

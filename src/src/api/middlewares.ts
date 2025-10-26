@@ -1,6 +1,6 @@
 // src/api/middlewares.ts
 import { defineMiddlewares } from "@medusajs/framework/http"
-import * as customHooks from "./custom-hooks"
+// import * as customHooks from "./custom-hooks"
 
 export default defineMiddlewares({
   routes: [
@@ -9,7 +9,7 @@ export default defineMiddlewares({
       bodyParser: { preserveRawBody: true },
       method: ["POST"],
       middlewares:[
-        customHooks.ecpayCallBack,
+        // customHooks.ecpayCallBack,
       ],
     },
   ],

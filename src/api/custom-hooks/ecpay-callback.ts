@@ -1,11 +1,12 @@
 import type { MedusaRequest, MedusaResponse, MedusaNextFunction } from "@medusajs/framework/http"
 import { Modules,} from "@medusajs/framework/utils"
-import { capturePaymentWorkflow,updateOrderWorkflow } from "@medusajs/medusa/core-flows"
+import { capturePaymentWorkflow,updateOrderWorkflow,cancelOrderWorkflow } from "@medusajs/medusa/core-flows"
 import EcpayCallbackBody from "./ecpaycallbackbody"
 
 const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: MedusaNextFunction) => {
     
     const action: string = "ecpayCallBack"
+    const handler: string = "ecpayment_callback"
     
     console.log(action,"Received ECPay callback",req.body)
     
@@ -110,12 +111,19 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
 
         console.log(action,"excute capturePaymentWorkflow, paymentID:",thePayment.id)
 
-        let theMetadata = {
-            payment_type: "ecpayment",
-            payment_code: data.RtnCode,
-            payment_msg: data.RtnMsg,
-            payment_status: "unknown",
-        }
+
+        await updateOrderWorkflow(req.scope).run({
+            input:{
+                id: orderID,
+                user_id: handler,
+                metadata:{
+                    payment_type: "ecpayment",
+                    payment_code: data.RtnCode,
+                    payment_msg: data.RtnMsg,
+                    payment_status: data.RtnCode === "1" ? "success" : "failed",
+                }
+            }
+        })
 
         if (data.RtnCode === "1"){
             await capturePaymentWorkflow(req.scope).run({
@@ -124,19 +132,14 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
                     amount: data.amount
                 },
             })
-            theMetadata.payment_status = "success"
         }else{
-            theMetadata.payment_status = "failed"
+            await cancelOrderWorkflow(req.scope).run({
+                input:{
+                    order_id: orderID,
+                    canceled_by: handler,
+                }
+            })
         }
-
-        await updateOrderWorkflow(req.scope).run({
-            input:{
-                id: orderID,
-                user_id: "ecpayment callback",
-                metadata:theMetadata
-            }
-        })
-        
 
     } catch (error) {
         console.error(action,"Error parsing request body:", error)
