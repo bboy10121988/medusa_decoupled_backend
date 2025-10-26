@@ -93,12 +93,11 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
         // 試驗証明：updatePaymentSession根本一點屁用沒有，裡面的data只有在init的時候可以何存，之後的更新都不會影響到payment的data欄位
         // 只好把原本data的地方直接放到order的metadata裡面去
         
-        await paymentModuleService.updatePaymentSession(
+        const paymentUpdateSession = await paymentModuleService.updatePaymentSession(
             {
                 id:paymentSessionID,
                 currency_code:thePayment.currency_code,
                 amount:thePayment.amount,
-                metadata:{},
                 data:{
                     "type": data.PaymentType,
                     "rtn_code": data.RtnCode,
@@ -112,6 +111,8 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
                 },
             }
         )
+
+        console.log(action,"updatePaymentSession result:",paymentUpdateSession)
 
         console.log(action,"excute capturePaymentWorkflow, paymentID:",thePayment.id)
 
