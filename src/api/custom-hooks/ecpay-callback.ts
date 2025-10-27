@@ -139,6 +139,9 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
 
             // 刪除原本的payment session
             await paymentModuleService.deletePaymentSession(paymentSessionID)
+            
+            // 取消付款記錄
+            await paymentModuleService.cancelPayment(thePayment.id)
 
             // 建立一個新的payment session，並且把callback data放進去
             const createdPaymentSession = await paymentModuleService.createPaymentSession(
@@ -164,7 +167,7 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
                     amount: data.amount
                 },
             })
-            
+
         }else{
             await cancelOrderWorkflow(req.scope).run({
                 input:{
