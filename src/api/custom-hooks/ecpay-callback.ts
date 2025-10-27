@@ -137,12 +137,12 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
 
             // 如果付款成功，就刪掉原本的payment session，並且建立一個含有正確data的新的payment session
 
+            // 取消原本的payment
+            await paymentModuleService.cancelPayment(thePayment.id)
+            
             // 刪除原本的payment session
             await paymentModuleService.deletePaymentSession(paymentSessionID)
             
-            // 取消付款記錄
-            await paymentModuleService.cancelPayment(thePayment.id)
-
             // 建立一個新的payment session，並且把callback data放進去
             const createdPaymentSession = await paymentModuleService.createPaymentSession(
                 paymentCollectionID,

@@ -23,6 +23,13 @@ class Service {
         const hashKey = process.env.ECPAY_HASH_KEY || '';
         const hashIV = process.env.ECPAY_HASH_IV || '';
 
+        console.log("ECPay Service Config:",{
+            "merchantID":merchantID,
+            "host":host,
+            "hashKey": hashKey,
+            "hashIV": hashIV,
+        })
+
         if (!merchantID){
             throw new Error("ECPAY_MERCHANT_ID is not set in environment variables");
         }
@@ -154,8 +161,56 @@ class Service {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
+            console.log("ECPay doCreditAction response status:",response);
+
+            
+
+            const responseText = await response.text();
+            
+            console.log("ECPay doCreditAction response text:",responseText);
+
+
+            let responseData: any = {};
+            try{
+                // 首先嘗試解析為 JSON
+                responseData = JSON.parse(responseText);
+                console.log("ECPay doCreditAction parsed response json data:",responseData);
+
+            }catch(_){
+                
+                console.log("Response is not JSON, trying form-encoded parsing...");
+
+                // 如果不是 JSON，嘗試解析為 form-encoded 格式
+                try{
+                    const params = new URLSearchParams(responseText);
+                    responseData = Object.fromEntries(params.entries());
+                    console.log("Successfully parsed as form-encoded:", responseData);
+                }catch(_){
+                    console.log("Response is not form-encoded, trying key-value parsing...");
+                    // 如果也不是 form-encoded，嘗試解析為 key=value&key=value 格式
+                    const lines = responseText.split('&');
+
+                    if (lines.length === 0){
+                        throw new Error("Response format is unrecognized");
+                    }
+
+                    for (const line of lines) {
+                        const [key, value] = line.split('=');
+                        if (key && value !== undefined) {
+                            responseData[key] = decodeURIComponent(value);
+                        }
+                    }
+                    console.log("Parsed as key-value pairs:", responseData);
+
+                    
+                }
+
+            }
+
+
+
             // 直接解析 JSON 響應
-            const responseData = await response.json();
+            // const responseData = await response.json();
             const result: models.ApiResponseCreditDoAction = {
                 MerchantID: responseData.MerchantID || '',
                 MerchantTradeNo: responseData.MerchantTradeNo || '',

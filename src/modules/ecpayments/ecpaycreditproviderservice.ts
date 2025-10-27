@@ -26,7 +26,8 @@ import { v4 as uuidv4 } from "uuid"
 import { getECPayFormURL } from "./funcs"
 import { isInTaipeiTimeRange } from "../../internal/funcs"
 import { Service } from "../../internal/ecpays"
-import { ApiRequestCreditDoAction } from "../../internal/ecpays/models"
+import { ApiRequestCreditDoAction,ApiResponseCreditDoAction } from "../../internal/ecpays/models"
+import { rejects } from "assert"
 
 /**
  * ECPayCreditProviderService
@@ -93,6 +94,7 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
   async authorizePayment(input: AuthorizePaymentInput): Promise<AuthorizePaymentOutput> {
 
     const action: string = this.getIdentifier() + " authorizePayment"
+
     console.log(action,"start authorizePayment with input:", input)
     
     console.log(action,"authorizePayment input.data:",input.data)
@@ -158,7 +160,26 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
 
       const creditCheckCode = parseInt(process.env.ECPAY_CREDIT_CHECK_CODE || "0")
       const creditRefundId = parseInt(String(input.data?.credit_refund_id))
-      const creditAmount = Number(input.amount.toString())
+      const creditAmount = Number(input.data?.payment_amount)
+
+      if (isNaN(creditCheckCode) || creditCheckCode === 0){
+        console.log("creditCheckCode is invalid:", creditCheckCode)
+        throw new Error("ECPAY_CREDIT_CHECK_CODE is not set in environment variables or invalid")
+      }
+
+      if (isNaN(creditRefundId) || creditRefundId === 0){
+        console.log("creditRefundId is invalid:", creditRefundId)
+        throw new Error("ECPAY_CREDIT_REFUND_ID is not set in environment variables or invalid")
+      }
+
+      if (isNaN(creditAmount) || creditAmount === 0){
+        console.log("creditAmount is invalid:", creditAmount)
+        throw new Error("ECPAY_CREDIT_AMOUNT is not set in environment variables or invalid")
+      }
+
+      console.log("creditCheckCode:", creditCheckCode)
+      console.log("creditRefundId:", creditRefundId)
+      console.log("creditAmount:", creditAmount)
 
       if (creditCheckCode === 0){
         console.log("process.env.ECPAY_CREDIT_CHECK_CODE", process.env.ECPAY_CREDIT_CHECK_CODE)
@@ -174,23 +195,43 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
 
       const ecpayService = Service.createDefault()
 
+
+
       const creditDetail = await ecpayService.getCreditDetail({
         CreditCheckCode:creditCheckCode,
         CreditRefundId: creditRefundId,
         CreditAmount: creditAmount
       })
 
+      console.log("creditDetail:", creditDetail)
+
+      console.log("creditDetail.RtnValue:", creditDetail.RtnValue)
+
+      console.log("creditDetail.RtnValue.status:", creditDetail.RtnValue.status)
+
+      if (creditDetail.RtnValue.status === "已取消"){
+        console.log("訂單已經取消，無法再次退款")
+        return {
+          data: input.data
+        }
+      }
+
       // 2.判斷訂單close_data中最後一筆amout為正向的資料狀態
-      
-      if (creditDetail.RtnValue.close_data.length == 0){
+      // - 狀態為已授權的時候，可能不會有close data資料
+      if (creditDetail.RtnValue.status !== "已授權" && creditDetail.RtnValue.close_data.length == 0){
         console.log("creditDetail.RtnValue.close_data is empty")
         throw new Error("信用卡退款查詢無法取得訂單狀態")
       }
 
-      const closeData = creditDetail.RtnValue.close_data[creditDetail.RtnValue.close_data.length - 1]
-      const closeAmount:number = parseInt(closeData.amount)
+      let closeAmount: number = 0
+      if (creditDetail.RtnValue.close_data.length > 0){
+        const closeData = creditDetail.RtnValue.close_data[creditDetail.RtnValue.close_data.length - 1]
+        closeAmount = parseInt(closeData.amount)
+      }else{
+        closeAmount = parseInt(creditDetail.RtnValue.amount)
+      }
 
-      if (closeAmount < 0){
+      if (closeAmount <= 0){
         console.log("The order has been fully refunded already.")
         throw new Error("此筆訂單已經全額退款，無法再進行退款")
       }
@@ -232,38 +273,54 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
       } as ApiRequestCreditDoAction
 
 
+      let doActionResult: ApiResponseCreditDoAction | null = null
+
       switch (creditDetail.RtnValue.status){
         case "已授權":
           actionParam.Action = "N"
-          await ecpayService.doCreditAction(actionParam)
+          doActionResult = await ecpayService.doCreditAction(actionParam)
           break
         case "要關帳":
           
           actionParam.Action = "E"
-          await ecpayService.doCreditAction(actionParam)
+          doActionResult = await ecpayService.doCreditAction(actionParam)
+
+          if (doActionResult.RtnCode !== 1){
+            console.log("Failed to perform 'Cancel' action:", doActionResult)
+            throw new Error("取消刷卡失敗"+doActionResult.RtnMsg+",請聯絡ECPay客服")
+          }
 
           actionParam.Action = "N"
-          await ecpayService.doCreditAction(actionParam)
+          doActionResult = await ecpayService.doCreditAction(actionParam)
 
           break
         case "已關帳":
           actionParam.Action = "R"
-          await ecpayService.doCreditAction(actionParam)
+          doActionResult = await ecpayService.doCreditAction(actionParam)
           break
         case "操作取消":
           actionParam.Action = "N"
-          await ecpayService.doCreditAction(actionParam)
+          doActionResult = await ecpayService.doCreditAction(actionParam)
           break
         default:
           console.log("Unknown order status:", creditDetail.RtnValue.status)
           throw new Error("Unknown order status, please contact customer service")
       }
 
+      console.log("doCreditAction result:", doActionResult)
+
+      if (doActionResult != null && doActionResult.RtnCode !== 1){
+        
+        console.log("Failed to perform action")
+        throw new Error("信用卡退款失敗"+doActionResult.RtnMsg+",請聯絡ECPay客服")
+
+      }
+
       return { data: input.data }
 
     }catch(error){
       console.log("refundPayment error:", error)
-      throw error
+      return Promise.reject(error)
     }
     
   }
