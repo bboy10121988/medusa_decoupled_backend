@@ -71,16 +71,11 @@ export default class ECPayCreditProviderService extends AbstractPaymentProvider 
     console.log(action,"start initiatePayment with input:", input)
 
     console.log(action,"initiatePayment input.data:",input.data)
-    
-    const tradeNo = Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("");
-    
-
 
     return {
       id: uuidv4(),
       data: {
         form_url: getECPayFormURL(),
-        trade_no: tradeNo,
         ...input.data
       }
     }

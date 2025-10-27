@@ -1,6 +1,6 @@
 import type { MedusaRequest, MedusaResponse, MedusaNextFunction } from "@medusajs/framework/http"
 import { Modules,} from "@medusajs/framework/utils"
-import { capturePaymentWorkflow,updateOrderWorkflow,cancelOrderWorkflow } from "@medusajs/medusa/core-flows"
+import { capturePaymentWorkflow,updateOrderWorkflow,cancelOrderWorkflow,deletePaymentSessionsWorkflow,createPaymentSessionsWorkflow } from "@medusajs/medusa/core-flows"
 import EcpayCallbackBody from "./ecpaycallbackbody"
 
 const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: MedusaNextFunction) => {
@@ -50,9 +50,7 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
             paymentSessionID = data.CustomField4
         }
 
-        // if (data.RtnCode !== "1"){
-        //     throw new Error("Unhandled RtnCode: " + data.RtnCode)
-        // }
+
         
         // 正確：直接拿到 query 實例，呼叫 graph
         const query = req.scope.resolve("query")
@@ -93,55 +91,80 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
         // 試驗証明：updatePaymentSession根本一點屁用沒有，裡面的data只有在init的時候可以何存，之後的更新都不會影響到payment的data欄位
         // 只好把原本data的地方直接放到order的metadata裡面去
         
-        const paymentUpdateSession = await paymentModuleService.updatePaymentSession(
-            {
-                id:paymentSessionID,
-                currency_code:thePayment.currency_code,
-                amount:thePayment.amount,
-                data:{
-                    "type": data.PaymentType,
-                    "rtn_code": data.RtnCode,
-                    "amount": data.amount,
-                    "payment_type": data.PaymentType,
-                    "payment_status": data.RtnCode,
-                    "merchant_trade_no": data.MerchantTradeNo,
-                    "trade_no": data.TradeNo,
-                    "credit_refund_id": data.gwsr,
-                    "status": "authorized"
-                },
-            }
-        )
-
-        console.log(action,"updatePaymentSession result:",paymentUpdateSession)
+        // const paymentUpdateSession = await paymentModuleService.updatePaymentSession(
+        //     {
+        //         id:paymentSessionID,
+        //         currency_code:thePayment.currency_code,
+        //         amount:thePayment.amount,
+        //         data:{
+        //             type: data.PaymentType,
+        //             rtn_code: data.RtnCode,
+        //             amount: data.amount,
+        //             payment_type: data.PaymentType,
+        //             payment_status: data.RtnCode,
+        //             merchant_trade_no: data.MerchantTradeNo,
+        //             trade_no: data.TradeNo,
+        //             credit_refund_id: data.gwsr,
+        //             status: "authorized"
+        //         },
+        //     }
+        // )
+        // console.log(action,"updatePaymentSession result:",paymentUpdateSession)
 
         console.log(action,"excute capturePaymentWorkflow, paymentID:",thePayment.id)
 
+        const ecpayData = {
+            payment_source: "ecpay",
+            payment_type: data.PaymentType,
+            payment_code: data.RtnCode,
+            payment_msg: data.RtnMsg,
+            payment_status: data.RtnCode === "1" ? "success" : "failed",
+            payment_amount: data.amount,
+            merchant_trade_no: data.MerchantTradeNo,
+            trade_no: data.TradeNo,
+            credit_refund_id:data.gwsr,
+        }
 
         await updateOrderWorkflow(req.scope).run({
             input:{
                 id: orderID,
                 user_id: handler,
-                metadata:{
-                    payment_source: "ecpay",
-                    payment_type: data.PaymentType,
-                    payment_code: data.RtnCode,
-                    payment_msg: data.RtnMsg,
-                    payment_status: data.RtnCode === "1" ? "success" : "failed",
-                    payment_amount: data.amount,
-                    merchant_trade_no: data.MerchantTradeNo,
-                    trade_no: data.TradeNo,
-                    credit_refund_id:data.gwsr,
-                }
+                metadata:ecpayData
             }
         })
 
         if (data.RtnCode === "1"){
+
+            // 如果付款成功，就刪掉原本的payment session，並且建立一個含有正確data的新的payment session
+
+            // 刪除原本的payment session
+            await paymentModuleService.deletePaymentSession(paymentSessionID)
+
+            // 建立一個新的payment session，並且把callback data放進去
+            const createdPaymentSession = await paymentModuleService.createPaymentSession(
+                paymentCollectionID,
+                {
+                    provider_id: thePayment.provider_id,
+                    currency_code: thePayment.currency_code,
+                    amount: thePayment.amount,
+                    data:ecpayData
+                }
+            )
+
+            console.log(action,"create new payment session result:",createdPaymentSession)
+
+            // 藉由auth新的payment session來capture payment
+            const createdPayment = await paymentModuleService.authorizePaymentSession(createdPaymentSession.id,{})
+
+            console.log(action,"authorizePaymentSession result:",createdPayment)
+            
             await capturePaymentWorkflow(req.scope).run({
                 input: {
-                    payment_id: thePayment.id,
+                    payment_id: createdPayment.id,
                     amount: data.amount
                 },
             })
+            
         }else{
             await cancelOrderWorkflow(req.scope).run({
                 input:{
