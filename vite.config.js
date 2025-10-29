@@ -1,6 +1,15 @@
 import { defineConfig } from 'vite'
 
 export default defineConfig({
+  admin:{
+    vite: () => {
+      return {
+        server:{
+          allowedHosts:[".timsfantasyworld.com"]
+        }
+      }
+    }
+  },
   server: {
     allowedHosts: [
       'admin.timsfantasyworld.com',
