@@ -16,6 +16,15 @@ const DEFAULT_ADMIN_CORS = 'http://localhost:7001,http://localhost:9000,https://
 const DEFAULT_AUTH_CORS = 'http://localhost:8000,http://localhost:9000,https://timsfantasyworld.com,https://admin.timsfantasyworld.com'
 
 module.exports = defineConfig({
+  admin:{
+    vite: () => {
+      return {
+        server:{
+          allowedHosts:[".timsfantasyworld.com"]
+        }
+      }
+    }
+  },
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     http: {
