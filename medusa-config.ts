@@ -138,7 +138,7 @@ module.exports = defineConfig({
             id: 'local',
             options: {
               upload_dir: 'static/uploads',
-              backend_url: process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com',
+              backend_url: (process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com') + '/static/uploads',
             },
           },
         ],
