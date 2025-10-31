@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   ecpay-medusa-service:
-    image: a6288678/ecpay-medusa-adapter:v1.1.0
+    image: a6288678/ecpay-medusa-adapter:v1.2.0
     restart: always
     ports:
       - "9327:8080"
@@ -14,4 +14,4 @@ services:
       # (linux): http://localhost:9000/custom-hooks/ecpay-callback
       # (remote): http://35.236.182.29:9000/custom-hooks/ecpay-callback
 
-      MEDUSA_DST: "http://35.236.182.29:9000/custom-hooks/ecpay-callback"
+      MEDUSA_DST: "https://admin.timsfantasyworld.com/custom-hooks/ecpay-callback"
