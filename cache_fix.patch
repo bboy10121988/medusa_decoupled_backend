@@ -1,0 +1,8 @@
+    {
+      // Redis 緩存模組 - 提升性能
+      resolve: '@medusajs/cache-redis',
+      key: Modules.CACHE,
+      options: {
+        redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+      },
+    },
