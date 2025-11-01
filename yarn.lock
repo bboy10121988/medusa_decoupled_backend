@@ -2302,6 +2302,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@medusajs/auth-emailpass@npm:^2.11.2":
+  version: 2.11.2
+  resolution: "@medusajs/auth-emailpass@npm:2.11.2"
+  dependencies:
+    scrypt-kdf: "npm:^2.0.1"
+  peerDependencies:
+    "@medusajs/framework": 2.11.2
+  checksum: 10c0/f9360b52205fc80b37acf61f665dbb9de32e5e2fa49e3f800cf1efda47c231fdbac44c58f9686c3dde24814e3ed26e3d738ad0a881d1d0fe6f3a2b39ffab57b0
+  languageName: node
+  linkType: hard
+
 "@medusajs/auth-github@npm:2.9.0":
   version: 2.9.0
   resolution: "@medusajs/auth-github@npm:2.9.0"
@@ -12882,6 +12893,7 @@ __metadata:
   resolution: "medusa_decoupled@workspace:."
   dependencies:
     "@medusajs/admin-sdk": "npm:2.9.0"
+    "@medusajs/auth-emailpass": "npm:^2.11.2"
     "@medusajs/auth-google": "npm:^2.10.3"
     "@medusajs/cache-redis": "npm:^2.11.2"
     "@medusajs/cli": "npm:^2.9.0"

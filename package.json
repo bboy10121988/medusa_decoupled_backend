@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@medusajs/admin-sdk": "2.9.0",
+    "@medusajs/auth-emailpass": "^2.11.2",
     "@medusajs/auth-google": "^2.10.3",
     "@medusajs/cache-redis": "^2.11.2",
     "@medusajs/cli": "^2.9.0",
