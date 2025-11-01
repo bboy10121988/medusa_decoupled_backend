@@ -126,22 +126,6 @@ module.exports = defineConfig({
       },
     },
     {
-      // File service module
-      resolve: '@medusajs/file',
-      options: {
-        providers: [
-          {
-            resolve: '@medusajs/file-local',
-            id: 'local',
-            options: {
-              upload_dir: 'static/uploads',
-              backend_url: (process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com') + '/static',
-            },
-          },
-        ],
-      },
-    },
-    {
       // Notification module - 使用 Local 提供者（Resend 透過自定義訂閱者處理）
       resolve: '@medusajs/notification',
       options: {
@@ -162,6 +146,23 @@ module.exports = defineConfig({
       key: Modules.CACHE,
       options: {
         redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+      },
+    },
+    {
+      // File service 配置 - 處理圖片上傳
+      resolve: '@medusajs/file',
+      key: Modules.FILE,
+      options: {
+        providers: [
+          {
+            resolve: '@medusajs/file-local',
+            id: 'local',
+            options: {
+              backend_url: (process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com') + '/static',
+              upload_dir: 'static/uploads',
+            },
+          },
+        ],
       },
     },
 
