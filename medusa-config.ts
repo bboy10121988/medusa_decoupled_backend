@@ -149,7 +149,7 @@ module.exports = defineConfig({
       },
     },
     {
-      // File service 配置 - 使用 file-local，但實際上傳由 /admin/uploads API 處理
+      // File service 配置 - 配合 file-local 的路徑處理
       resolve: '@medusajs/file',
       key: Modules.FILE,
       options: {
@@ -158,9 +158,11 @@ module.exports = defineConfig({
             resolve: '@medusajs/file-local',
             id: 'local',
             options: {
-              // 保留原設定，但 /admin/uploads API 已被我們覆蓋
-              backend_url: (process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com') + '/static/uploads',
-              upload_dir: 'static/uploads',
+              // backend_url 設為 domain + /static，file-local 會將檔案存到 upload_dir
+              // 然後 URL 會是: backend_url + '/' + 相對於 upload_dir 的檔名
+              backend_url: (process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com') + '/static',
+              // upload_dir 是實際存儲目錄，file-local 會把檔案存這裡
+              upload_dir: 'static',
             },
           },
         ],
