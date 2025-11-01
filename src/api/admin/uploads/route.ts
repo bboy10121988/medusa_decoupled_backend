@@ -72,7 +72,7 @@ export async function POST(
       uploadedFiles.push({
         id: sanitizedName,
         url: fullUrl,
-        key: `uploads/${sanitizedName}`,  // Medusa 期望的 key 格式
+        key: sanitizedName,  // 只用檔名作為 key
         filename: file.originalFilename || file.newFilename,
         size: file.size,
         mimetype: file.mimetype || 'application/octet-stream'
@@ -81,9 +81,9 @@ export async function POST(
 
     console.log(`✅ Successfully uploaded ${uploadedFiles.length} files via /admin/uploads`)
     
-    // 返回 Medusa 期望的格式
-    res.json({
-      uploads: uploadedFiles
+    // 返回格式：files（與 /admin/files 相同）
+    res.status(200).json({
+      files: uploadedFiles
     })
     
   } catch (error) {
