@@ -158,10 +158,10 @@ module.exports = defineConfig({
             resolve: '@medusajs/file-local',
             id: 'local',
             options: {
-              // backend_url 設為基礎 URL + /static，file-local 會加上檔案相對路徑
-              backend_url: (process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com') + '/static',
-              // upload_dir 設定為 static，讓檔案上傳到 static/ 目錄
-              upload_dir: 'static',
+              // backend_url 設為完整 URL，file-local 會加上 upload_dir 相對路徑和檔名
+              backend_url: process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com',
+              // upload_dir 設定為 static/uploads，讓檔案上傳到 static/uploads/ 目錄
+              upload_dir: 'static/uploads',
             },
           },
         ],
