@@ -18,7 +18,8 @@ const DEFAULT_AUTH_CORS = 'http://localhost:8000,http://localhost:9000,https://t
 module.exports = defineConfig({
   admin: { 
     disable: false,
-    backendUrl: "https://admin.timsfantasyworld.com"
+    backendUrl: "https://admin.timsfantasyworld.com",
+    outDir: "/home/raychou/projects/backend/.medusa/server/public/admin"
   },
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
@@ -126,6 +127,22 @@ module.exports = defineConfig({
       },
     },
     {
+      // File service module
+      resolve: '@medusajs/file',
+      options: {
+        providers: [
+          {
+            resolve: '@medusajs/file-local',
+            id: 'local',
+            options: {
+              upload_dir: 'static',
+              backend_url: process.env.BACKEND_URL || 'http://localhost:9000/static',
+            },
+          },
+        ],
+      },
+    },
+    {
       // Notification module - 使用 Local 提供者（Resend 透過自定義訂閱者處理）
       resolve: '@medusajs/notification',
       options: {
@@ -146,25 +163,6 @@ module.exports = defineConfig({
       key: Modules.CACHE,
       options: {
         redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
-      },
-    },
-    {
-      // File service 配置 - 處理圖片上傳  
-      resolve: '@medusajs/file',
-      key: Modules.FILE,
-      options: {
-        providers: [
-          {
-            resolve: '@medusajs/file-local',
-            id: 'local',
-            options: {
-              // backend_url 設為基礎 URL + /static，file-local 會加上檔案相對路徑
-              backend_url: (process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com') + '/static',
-              // upload_dir 設定為 static，讓檔案上傳到 static/ 目錄
-              upload_dir: 'static',
-            },
-          },
-        ],
       },
     },
 
