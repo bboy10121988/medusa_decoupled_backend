@@ -158,7 +158,7 @@ module.exports = defineConfig({
             resolve: '@medusajs/file-local',
             id: 'local',
             options: {
-              backend_url: (process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com') + '/static',
+              backend_url: (process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com') + '/static/uploads',
               upload_dir: 'static/uploads',
             },
           },
