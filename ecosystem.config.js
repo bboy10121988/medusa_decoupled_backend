@@ -2,7 +2,7 @@ module.exports = {
   apps: [{
     name: 'medusa-backend',
     script: 'yarn',
-    args: 'start',
+    args: 'dev',
     cwd: '/home/raychou/projects/backend',
     env: {
       NODE_ENV: 'production'
