@@ -2367,6 +2367,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@medusajs/cache-redis@npm:^2.11.2":
+  version: 2.11.2
+  resolution: "@medusajs/cache-redis@npm:2.11.2"
+  dependencies:
+    ioredis: "npm:^5.4.1"
+  peerDependencies:
+    "@medusajs/framework": 2.11.2
+  checksum: 10c0/5b2046707feda2bce22d5c379690ea771ecf584970495f23fa642c7e3449cacf0d8cd4bb883572e3a268a5f7ebed98f36a7baa633ebfb21e3fb60d49626ff2bb
+  languageName: node
+  linkType: hard
+
 "@medusajs/cart@npm:2.9.0":
   version: 2.9.0
   resolution: "@medusajs/cart@npm:2.9.0"
@@ -12872,6 +12883,7 @@ __metadata:
   dependencies:
     "@medusajs/admin-sdk": "npm:2.9.0"
     "@medusajs/auth-google": "npm:^2.10.3"
+    "@medusajs/cache-redis": "npm:^2.11.2"
     "@medusajs/cli": "npm:^2.9.0"
     "@medusajs/file-local": "npm:^2.9.0"
     "@medusajs/framework": "npm:2.9.0"

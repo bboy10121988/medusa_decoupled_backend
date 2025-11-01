@@ -27,6 +27,8 @@ module.exports = defineConfig({
   },
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
+    // Redis 配置 - 用於會話存儲和緩存
+    redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
     http: {
       // CORS configuration for different parts of the application
       storeCors: process.env.STORE_CORS || DEFAULT_STORE_CORS,
@@ -137,8 +139,8 @@ module.exports = defineConfig({
             resolve: '@medusajs/file-local',
             id: 'local',
             options: {
-              upload_dir: 'static/uploads',
-              backend_url: (process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com') + '/static/uploads',
+              upload_dir: 'static',
+              backend_url: process.env.BACKEND_URL || 'http://localhost:9000/static',
             },
           },
         ],
@@ -158,6 +160,13 @@ module.exports = defineConfig({
             },
           }
         ],
+      },
+    },
+    {
+      // Redis 緩存模組 - 提升性能
+      resolve: '@medusajs/cache-redis',
+      options: {
+        redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
       },
     },
 
