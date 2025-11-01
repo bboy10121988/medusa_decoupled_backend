@@ -3,6 +3,9 @@
  * 直接使用 Resend API 發送測試郵件
  */
 
+// 載入環境變數
+require('dotenv').config()
+
 const { Resend } = require('resend')
 
 async function sendTestAdminEmail() {

@@ -1,7 +1,9 @@
-// 測試 Resend API
+// 測試 Resend API 密碼重置功能
+require('dotenv').config()
+
 const { Resend } = require('resend');
 
-const resend = new Resend('re_cX7UFw7m_7bMvJqiExKim8MwTdNDzCR4G');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 async function testResend() {
   try {
@@ -10,8 +12,8 @@ async function testResend() {
     const resetUrl = 'https://timsfantasyworld.com/auth/reset-password?token=test123';
     
     const { data, error } = await resend.emails.send({
-      from: 'noreply@timsfantasyworld.com',
-      to: ['bboy10121988@gmail.com'],
+      from: process.env.RESEND_FROM_EMAIL || 'noreply@timsfantasyworld.com',
+      to: [process.env.ADMIN_EMAIL || 'textsence.ai@gmail.com'],
       subject: '密碼重設 - Tim\'s Fantasy World',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -42,7 +44,7 @@ async function testResend() {
 
     console.log('✅ 測試郵件發送成功！');
     console.log('📧 郵件 ID:', data.id);
-    console.log('🎯 收件者: bboy10121988@gmail.com');
+    console.log('🎯 收件者:', process.env.ADMIN_EMAIL || 'textsence.ai@gmail.com');
     
     return true;
   } catch (error) {
