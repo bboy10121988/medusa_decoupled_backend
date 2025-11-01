@@ -12,11 +12,14 @@ loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 
 // Default CORS settings for development and production
 const DEFAULT_STORE_CORS = 'http://localhost:8000,https://timsfantasyworld.com'
-const DEFAULT_ADMIN_CORS = 'http://localhost:7001,http://localhost:9000,https://admin.timsfantasyworld.com,http://admin.timsfantasyworld.com,http://localhost:8000'
+const DEFAULT_ADMIN_CORS = "http://localhost:7001,http://localhost:9000,https://admin.timsfantasyworld.com,http://admin.timsfantasyworld.com,http://localhost:8000,http://35.185.142.194:9000"
 const DEFAULT_AUTH_CORS = 'http://localhost:8000,http://localhost:9000,https://timsfantasyworld.com,https://admin.timsfantasyworld.com'
 
 module.exports = defineConfig({
-  admin: { disable: false },
+  admin: { 
+    disable: false,
+    backendUrl: "https://admin.timsfantasyworld.com"
+  },
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,
     // Redis 配置 - 用於會話存儲和緩存
