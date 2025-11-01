@@ -5,7 +5,8 @@ module.exports = {
     args: 'dev',
     cwd: '/home/raychou/projects/backend',
     env: {
-      NODE_ENV: 'production'
+      NODE_ENV: 'production',
+      BACKEND_URL: 'https://admin.timsfantasyworld.com'
     },
     env_file: '.env',
     instances: 1,
