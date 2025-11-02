@@ -1,7 +1,12 @@
 import { OAuth2Client } from "google-auth-library"
+import type { MedusaRequest, MedusaResponse, MedusaNextFunction } from "@medusajs/framework/http"
 
-export const googleOAuthCallback = async (req: any, res: any) => {
-  const { code } = req.body
+export const googleOAuthCallback = async (
+  req: MedusaRequest,
+  res: MedusaResponse,
+  next: MedusaNextFunction
+) => {
+  const { code } = req.body as { code?: string }
 
   if (!code) {
     return res.status(400).json({
@@ -54,7 +59,7 @@ export const googleOAuthCallback = async (req: any, res: any) => {
       console.log(`👤 Existing customer found: ${customerId}`)
     } else {
       console.log(`➕ Creating new customer for ${email}...`)
-      const createCustomerWorkflow = req.scope.resolve("createCustomersWorkflow")
+      const createCustomerWorkflow = req.scope.resolve("createCustomersWorkflow") as any
       const { result } = await createCustomerWorkflow.run({
         input: {
           customers: [{
@@ -75,7 +80,7 @@ export const googleOAuthCallback = async (req: any, res: any) => {
       console.log(`✅ New customer created: ${customerId}`)
     }
 
-    const authModuleService = req.scope.resolve("authModuleService")
+    const authModuleService = req.scope.resolve("authModuleService") as any
     const existingIdentity = await authModuleService.listProviderIdentities({
       provider: "google",
       entity_id: customerId,
@@ -107,7 +112,7 @@ export const googleOAuthCallback = async (req: any, res: any) => {
     }
 
     console.log("🔐 Generating JWT token...")
-    const jwtService = req.scope.resolve("jwt")
+    const jwtService = req.scope.resolve("jwt") as any
     const token = jwtService.generate({
       actor_id: customerId,
       actor_type: "customer",
