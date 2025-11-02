@@ -56,50 +56,62 @@ module.exports = defineConfig({
             options: {
               clientId: requiredEnv('GOOGLE_CLIENT_ID'),
               clientSecret: requiredEnv('GOOGLE_CLIENT_SECRET'),
-              callbackUrl: requiredEnv('GOOGLE_CALLBACK_URL'), // 確保這個 URL 指向後端，例如 http://localhost:9000/auth/google/cb
-              // 🔧 強制 Google 顯示帳號選擇畫面的參數，直接放在 options 層級
-              // prompt: 'consent select_account',
-              // access_type: 'offline',
-              // ✅ 正確的位置：verify 函式應定義在對應 provider 的 options 內部
+              callbackUrl: requiredEnv('GOOGLE_CALLBACK_URL'),
+              // ✅ Medusa v2 verify callback
               verify: async (container, req, accessToken, refreshToken, profile, done) => {
-                // 從 Google profile 中解析出使用者資料
-                const { email, given_name, family_name, picture } = profile._json;
-
-
-                console.log ("Google Auth: Profile data received", profile._json);
-
-                // 如果 Google 沒有回傳 email，則拒絕登入
+                console.log("=== Google OAuth Callback ===")
+                console.log("Profile:", JSON.stringify(profile._json, null, 2))
+                
+                const { email, given_name, family_name, picture, sub: googleUserId } = profile._json
+                
                 if (!email) {
-                  return done(null, false, { message: 'Google profile did not return an email.' });
+                  console.error("❌ Google profile missing email")
+                  return done(null, false, { message: 'Google profile did not return an email.' })
                 }
-                // 使用 Medusa 的依賴注入容器來取得 CustomerService
-                const customerService = container.resolve('customerService');
+                
                 try {
-                  // 1. 檢查此 email 的顧客是否已存在
-                  let customer = await customerService.retrieveByEmail(email).catch(() => undefined);
-                  if (customer) {
-                    // 2. 如果顧客已存在，直接回傳顧客物件，完成登入
-                    console.log(`Google Auth: Customer ${email} already exists. Logging in.`);
-                    return done(null, customer);
+                  // 使用 Medusa v2 的 query API 檢查用戶是否存在
+                  const query = container.resolve("query")
+                  const { data: customers } = await query.graph({
+                    entity: "customer",
+                    fields: ["id", "email", "first_name", "last_name", "has_account"],
+                    filters: { email },
+                  })
+                  
+                  if (customers && customers.length > 0) {
+                    console.log(`✅ Google Auth: Customer ${email} already exists. Logging in.`)
+                    return done(null, customers[0])
                   }
-                  // 3. 如果顧客不存在，建立一個新的顧客
-                  console.log(`Google Auth: Customer ${email} does not exist. Creating new customer.`);
-                  const newCustomer = await customerService.create({
-                    email: email,
-                    first_name: given_name || '',
-                    last_name: family_name || '',
-                    // 可以在 metadata 中儲存額外資訊
-                    metadata: {
-                      auth_provider: 'google',
-                      picture: picture
+                  
+                  // 使用 Medusa v2 的 workflow 創建新用戶
+                  console.log(`➕ Google Auth: Creating new customer for ${email}...`)
+                  const createCustomersWorkflow = container.resolve("createCustomersWorkflow")
+                  
+                  const { result } = await createCustomersWorkflow.run({
+                    input: {
+                      customers: [{
+                        email,
+                        first_name: given_name || '',
+                        last_name: family_name || '',
+                        has_account: true,
+                        metadata: {
+                          auth_provider: 'google',
+                          google_user_id: googleUserId,
+                          picture,
+                        }
+                      }]
                     }
-                  });
-                  // 4. 回傳新建立的顧客物件，完成註冊並登入
-                  return done(null, newCustomer);
-                }
-                catch (error) {
-                  console.error("Google Auth: Error in verify callback", error);
-                  return done(error, false);
+                  })
+                  
+                  const newCustomer = result[0]
+                  console.log(`✅ Google Auth: New customer created: ${newCustomer.id}`)
+                  
+                  return done(null, newCustomer)
+                  
+                } catch (error) {
+                  console.error("❌ Google Auth: Error in verify callback", error)
+                  console.error("Error details:", error.stack)
+                  return done(error, false)
                 }
               }
             },
