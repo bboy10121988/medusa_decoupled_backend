@@ -120,16 +120,12 @@ export default defineMiddlewares({
   
   routes: [
     {
-      matcher: "/store/auth/google/*",
-      method: ["GET", "POST"],
+      matcher: "/store/auth/google/me",
+      method: ["GET"],
       middlewares: [
-        // 註冊我們的自定義 API 路由
+        // 註冊我們的自定義 API 路由(舊版自定義路由)
         (req, res, next) => {
-          if (req.path.startsWith('/store/auth/google/me') || 
-              req.path.startsWith('/store/auth/google/callback')) {
-            return routes(req.app, process.cwd(), {})(req, res, next)
-          }
-          next()
+          return routes(req.app, process.cwd(), {})(req, res, next)
         }
       ],
     },
