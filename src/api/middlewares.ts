@@ -125,7 +125,8 @@ export default defineMiddlewares({
       middlewares: [
         // 註冊我們的自定義 API 路由
         (req, res, next) => {
-          if (req.path.startsWith('/store/auth/google/me')) {
+          if (req.path.startsWith('/store/auth/google/me') || 
+              req.path.startsWith('/store/auth/google/callback')) {
             return routes(req.app, process.cwd(), {})(req, res, next)
           }
           next()
