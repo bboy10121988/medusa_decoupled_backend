@@ -7,15 +7,19 @@ import { Modules } from "@medusajs/framework/utils"
 /**
  * 管理員訂單通知訂閱者
  * 當有新訂單時發送通知給管理員
+ * 
+ * ⚠️ 非同步執行，不阻塞訂單創建流程
  */
 export default async function adminOrderNotificationHandler({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
-  const notificationModuleService = container.resolve(Modules.NOTIFICATION)
-  const query = container.resolve("query")
+  // 🚀 使用 setImmediate 讓郵件發送在下一個事件循環執行，不阻塞訂單創建
+  setImmediate(async () => {
+    const notificationModuleService = container.resolve(Modules.NOTIFICATION)
+    const query = container.resolve("query")
 
-  try {
+    try {
     // 查詢訂單詳細資訊
     const { data: [order] } = await query.graph({
       entity: "order",
@@ -83,9 +87,12 @@ export default async function adminOrderNotificationHandler({
 
     console.log(`✅ 管理員訂單通知已發送至 ${adminEmail}`)
 
-  } catch (error) {
-    console.error("❌ 發送管理員訂單通知失敗:", error)
-  }
+    } catch (error) {
+      console.error("❌ 發送管理員訂單通知失敗:", error)
+    }
+  })
+  
+  // 立即返回，不等待郵件發送完成
 }
 
 export const config: SubscriberConfig = {

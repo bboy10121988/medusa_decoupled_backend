@@ -7,15 +7,19 @@ import { Modules } from "@medusajs/framework/utils"
 /**
  * 訂單完成通知訂閱者
  * 當訂單狀態變為已完成時自動發送電子郵件通知給客戶
+ * 
+ * ⚠️ 非同步執行，不阻塞訂單創建流程
  */
 export default async function orderPlacedHandler({
   event: { data },
   container,
 }: SubscriberArgs<{ id: string }>) {
-  const notificationModuleService = container.resolve(Modules.NOTIFICATION)
-  const query = container.resolve("query")
+  // 🚀 使用 setImmediate 讓郵件發送在下一個事件循環執行，不阻塞訂單創建
+  setImmediate(async () => {
+    const notificationModuleService = container.resolve(Modules.NOTIFICATION)
+    const query = container.resolve("query")
 
-  try {
+    try {
     // 查詢訂單詳細資訊
     const { data: [order] } = await query.graph({
       entity: "order",
@@ -83,9 +87,12 @@ export default async function orderPlacedHandler({
 
     console.log(`✅ 訂單完成通知已發送給 ${order.customer.email} (使用 ${provider} 提供者)`)
 
-  } catch (error) {
-    console.error("❌ 發送訂單完成通知失敗:", error)
-  }
+    } catch (error) {
+      console.error("❌ 發送訂單完成通知失敗:", error)
+    }
+  })
+  
+  // 立即返回，不等待郵件發送完成
 }
 
 export const config: SubscriberConfig = {
