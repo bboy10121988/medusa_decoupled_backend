@@ -1,6 +1,8 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { OAuth2Client } from "google-auth-library";
 
+export const AUTHENTICATE = false;
+
 /**
  * POST /store/auth/google/callback
  * 
@@ -13,10 +15,10 @@ import { OAuth2Client } from "google-auth-library";
  * 5. 生成 Medusa JWT token
  * 6. 返回 token 和 customer 資料給前端
  */
-export async function POST(
-  req: MedusaRequest<{ code: string }>,
+export const POST = async (
+  req: MedusaRequest,
   res: MedusaResponse
-): Promise<void> {
+) => {
   const { code } = req.body as { code: string };
 
   // 驗證必要參數
@@ -183,4 +185,4 @@ export async function POST(
       error: process.env.NODE_ENV === "development" ? error : undefined,
     });
   }
-};
+}
