@@ -120,7 +120,7 @@ export default defineMiddlewares({
   
   routes: [
     {
-      matcher: "/auth/google/callback",
+      matcher: "/google-auth/callback",
       method: ["POST"],
       middlewares: [
         // Google OAuth callback - 使用自定義路由系統

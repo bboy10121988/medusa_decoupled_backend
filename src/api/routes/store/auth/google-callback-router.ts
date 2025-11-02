@@ -4,7 +4,7 @@ import { OAuth2Client } from "google-auth-library"
 export default function googleCallbackRouter() {
   const router = Router()
 
-  router.post("/auth/google/callback", async (req: any, res) => {
+  router.post("/google-auth/callback", async (req: any, res) => {
     const { code } = req.body
 
     // 驗證必要參數
