@@ -56,7 +56,12 @@ module.exports = defineConfig({
             options: {
               clientId: process.env.GOOGLE_CLIENT_ID || '',
               clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-              callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://admin.timsfantasyworld.com/auth/customer/google/callback',
+              callbackUrl: (() => {
+                const url = process.env.GOOGLE_CALLBACK_URL || 'https://admin.timsfantasyworld.com/auth/customer/google/callback'
+                console.log('🔧 Google OAuth callbackUrl:', url)
+                console.log('🔧 Environment:', process.env.NODE_ENV)
+                return url
+              })(),
               // ✅ Medusa v2 verify callback
               verify: async (container, req, accessToken, refreshToken, profile, done) => {
                 console.log("=== Google OAuth Callback ===")
