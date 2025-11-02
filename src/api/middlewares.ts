@@ -123,10 +123,9 @@ export default defineMiddlewares({
       matcher: "/admin/google-callback",
       method: ["POST"],
       middlewares: [
-        // Google OAuth callback - 不需要認證
-        async (req: MedusaRequest, res: MedusaResponse) => {
-          const callbackHandler = await import("./admin/google-callback/route.js")
-          return callbackHandler.POST(req, res)
+        // Google OAuth callback - 使用自定義路由系統
+        (req, res, next) => {
+          return routes(req.app, process.cwd(), {})(req, res, next)
         }
       ],
     },
