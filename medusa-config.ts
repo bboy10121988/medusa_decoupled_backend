@@ -54,9 +54,9 @@ module.exports = defineConfig({
             resolve: '@medusajs/auth-google',
             id: 'google',
             options: {
-              clientId: requiredEnv('GOOGLE_CLIENT_ID'),
-              clientSecret: requiredEnv('GOOGLE_CLIENT_SECRET'),
-              callbackUrl: requiredEnv('GOOGLE_CALLBACK_URL'),
+              clientId: process.env.GOOGLE_CLIENT_ID || '',
+              clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+              callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://admin.timsfantasyworld.com/auth/customer/google/callback',
               // ✅ Medusa v2 verify callback
               verify: async (container, req, accessToken, refreshToken, profile, done) => {
                 console.log("=== Google OAuth Callback ===")
