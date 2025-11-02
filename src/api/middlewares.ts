@@ -121,6 +121,7 @@ export default defineMiddlewares({
   routes: [
     {
       matcher: "/custom-hooks/google-auth-callback",
+      bodyParser: { preserveRawBody: true },
       method: ["POST"],
       middlewares: [customHooks.googleOAuthCallback],
     },
