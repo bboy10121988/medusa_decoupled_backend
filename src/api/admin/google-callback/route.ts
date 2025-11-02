@@ -1,10 +1,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
 import { OAuth2Client } from "google-auth-library";
 
-export const AUTHENTICATE = false;
+export const AUTHENTICATE = false
 
 /**
- * POST /store/auth/google/callback
+ * POST /admin/google-callback
  * 
  * 處理前端從 Google OAuth 重定向後傳來的 authorization code
  * 流程:
