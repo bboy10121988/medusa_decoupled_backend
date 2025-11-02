@@ -20,10 +20,10 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
       // 在某些環境下 session middleware 可能尚未初始化
       console.warn('Session object not found on request.');
     } else {
-      // 將 state 存進 session
-      (req.session as any).oauth_state = state
+      // 將 state 存進 session（使用 bracket notation 避免 TS 解析問題）
+      ;(req.session as any)['oauth_state'] = state
       // 若需要，可在 session 中記錄其他 metadata
-      (req.session as any).oauth_provider = 'google'
+      ;(req.session as any)['oauth_provider'] = 'google'
     }
 
     const clientId = process.env.GOOGLE_CLIENT_ID || ''
