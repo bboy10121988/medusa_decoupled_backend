@@ -162,6 +162,9 @@ module.exports = defineConfig({
     },
     {
       // File service 配置
+      // backend_url: 完整URL前綴（不包含upload_dir）
+      // upload_dir: 檔案存儲目錄（相對於專案根目錄）
+      // 最終URL = backend_url + '/' + 檔案相對於upload_dir的路徑
       resolve: '@medusajs/file',
       key: Modules.FILE,
       options: {
@@ -170,10 +173,10 @@ module.exports = defineConfig({
             resolve: '@medusajs/file-local',
             id: 'local',
             options: {
-              // backend_url + '/' + upload_dir + '/' + filename
-              // = https://admin.timsfantasyworld.com/static/uploads/filename.jpg
-              backend_url: (process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com') + '/static',
-              upload_dir: 'uploads',
+              // 檔案會存到 static/uploads/ 目錄
+              upload_dir: 'static/uploads',
+              // URL 前綴（file-local 會自動加上檔案路徑）
+              backend_url: process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com',
             },
           },
         ],
