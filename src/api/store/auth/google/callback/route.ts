@@ -1,5 +1,4 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils";
 import { OAuth2Client } from "google-auth-library";
 
 /**
@@ -15,10 +14,10 @@ import { OAuth2Client } from "google-auth-library";
  * 6. 返回 token 和 customer 資料給前端
  */
 export async function POST(
-  req: MedusaRequest,
+  req: MedusaRequest<{ code: string }>,
   res: MedusaResponse
 ): Promise<void> {
-  const { code } = req.body;
+  const { code } = req.body as { code: string };
 
   // 驗證必要參數
   if (!code) {
@@ -65,7 +64,7 @@ export async function POST(
     console.log(`✅ Google user authenticated: ${email}`);
 
     // 3. 獲取 Medusa services
-    const query = req.scope.resolve("query");
+    const query = req.scope.resolve("query") as any;
     
     // 4. 檢查用戶是否已存在
     const { data: customers } = await query.graph({
@@ -85,7 +84,7 @@ export async function POST(
       // 創建新用戶
       console.log(`➕ Creating new customer for ${email}...`);
       
-      const createCustomerWorkflow = req.scope.resolve("createCustomersWorkflow");
+      const createCustomerWorkflow = req.scope.resolve("createCustomersWorkflow") as any;
       const { result } = await createCustomerWorkflow.run({
         input: {
           customers: [{
@@ -108,7 +107,7 @@ export async function POST(
     }
 
     // 5. 檢查/創建 auth_identity 和 provider_identity
-    const authModuleService = req.scope.resolve("authModuleService");
+    const authModuleService = req.scope.resolve("authModuleService") as any;
     
     // 查找是否已有 Google provider identity
     const existingIdentity = await authModuleService.listProviderIdentities({
@@ -148,7 +147,7 @@ export async function POST(
 
     // 6. 生成 JWT token
     console.log("🔐 Generating JWT token...");
-    const jwtService = req.scope.resolve(ContainerRegistrationKeys.JWT);
+    const jwtService = req.scope.resolve("jwt") as any;
     
     const token = jwtService.generate({
       actor_id: customerId,
