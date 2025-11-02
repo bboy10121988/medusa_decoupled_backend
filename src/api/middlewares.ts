@@ -120,6 +120,17 @@ export default defineMiddlewares({
   
   routes: [
     {
+      matcher: "/admin/google-callback",
+      method: ["POST"],
+      middlewares: [
+        // Google OAuth callback - 不需要認證
+        async (req: MedusaRequest, res: MedusaResponse) => {
+          const callbackHandler = await import("./admin/google-callback/route")
+          return callbackHandler.POST(req, res)
+        }
+      ],
+    },
+    {
       matcher: "/store/auth/google/me",
       method: ["GET"],
       middlewares: [
