@@ -36,7 +36,7 @@ export async function POST(
     console.log(`   Request content-type:`, req.headers['content-type'])
     console.log(`   Request content-length:`, req.headers['content-length'])
 
-    // 確保上傳目錄存在
+    // 確保上傳目錄存在 - 使用與 files 相同的目錄結構
     const uploadDir = path.join(process.cwd(), 'static', 'uploads')
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true })
@@ -44,7 +44,7 @@ export async function POST(
     
     console.log(`   ⏱️  [${Date.now() - startTime}ms] Directory check complete`)
     
-    // 解析表單數據
+    // 解析表單數據 - 使用與 files 相同的配置
     const parseStart = Date.now()
     const form = formidable({
       maxFileSize: 50 * 1024 * 1024, // 50MB (與 Nginx 一致)
@@ -66,7 +66,7 @@ export async function POST(
       if (!file) continue
       
       const fileStart = Date.now()
-      // 清理文件名
+      // 清理文件名 - 與 files 相同的邏輯
       const sanitizedName = sanitizeFilename(file.originalFilename || file.newFilename || 'upload')
       const newPath = path.join(uploadDir, sanitizedName)
       
@@ -75,6 +75,7 @@ export async function POST(
         fs.renameSync(file.filepath, newPath)
       }
       
+      // 使用與 files 相同的 URL 格式
       const baseUrl = process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com'
       const fullUrl = `${baseUrl}/static/uploads/${sanitizedName}`
       
@@ -84,10 +85,10 @@ export async function POST(
       console.log(`      Time: ${fileTime}ms`)
       console.log(`      URL: ${fullUrl}`)
       
+      // 使用與 files 完全相同的回應格式
       uploadedFiles.push({
         id: sanitizedName,
         url: fullUrl,
-        key: sanitizedName,
         filename: file.originalFilename || file.newFilename,
         size: file.size,
         mimetype: file.mimetype || 'application/octet-stream'
@@ -102,7 +103,8 @@ export async function POST(
     console.log(`   ⏱️  TOTAL TIME: ${totalTime}ms`)
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     
-    res.status(200).json({
+    // 回應格式與 files 完全一致
+    res.json({
       files: uploadedFiles
     })
     

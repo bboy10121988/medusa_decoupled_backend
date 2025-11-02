@@ -9,6 +9,17 @@ import path from "path"
 
 export const AUTHENTICATE = true
 
+export async function GET(
+  req: AuthenticatedMedusaRequest,
+  res: MedusaResponse
+): Promise<void> {
+  res.json({
+    message: "File upload endpoint ready",
+    methods: ["POST"],
+    authenticated: true
+  })
+}
+
 // 清理文件名函數
 function sanitizeFilename(filename: string): string {
   if (!filename) return Date.now().toString()
