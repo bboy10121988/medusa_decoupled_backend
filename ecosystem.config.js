@@ -6,7 +6,10 @@ module.exports = {
     cwd: '/home/raychou/projects/backend',
     env: {
       NODE_ENV: 'production',
-      BACKEND_URL: 'https://admin.timsfantasyworld.com'
+      BACKEND_URL: 'https://admin.timsfantasyworld.com',
+      GOOGLE_CALLBACK_URL: 'https://admin.timsfantasyworld.com/auth/customer/google/callback',
+      FRONTEND_URL: 'https://timsfantasyworld.com',
+      COOKIE_DOMAIN: '.timsfantasyworld.com'
     },
     env_file: '.env',
     instances: 1,
