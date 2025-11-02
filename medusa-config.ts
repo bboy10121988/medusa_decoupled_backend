@@ -170,11 +170,12 @@ module.exports = defineConfig({
             resolve: '@medusajs/file-local',
             id: 'local',
             options: {
-              // backend_url 設為 domain + /static，file-local 會將檔案存到 upload_dir
-              // 然後 URL 會是: backend_url + '/' + 相對於 upload_dir 的檔名
+              // backend_url 是基礎 URL，file-local 會自動加上檔案的相對路徑
+              // 例如：backend_url + '/uploads/filename.jpg' -> https://admin.timsfantasyworld.com/static/uploads/filename.jpg
               backend_url: (process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com') + '/static',
-              // upload_dir 是實際存儲目錄，file-local 會把檔案存這裡
-              upload_dir: 'static',
+              // upload_dir 是實際存儲目錄（相對於專案根目錄）
+              // 檔案會存到: ./static/uploads/filename.jpg
+              upload_dir: 'static/uploads',
             },
           },
         ],
