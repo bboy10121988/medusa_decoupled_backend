@@ -125,7 +125,7 @@ export default defineMiddlewares({
       middlewares: [
         // Google OAuth callback - 不需要認證
         async (req: MedusaRequest, res: MedusaResponse) => {
-          const callbackHandler = await import("./admin/google-callback/route")
+          const callbackHandler = await import("./admin/google-callback/route.js")
           return callbackHandler.POST(req, res)
         }
       ],
