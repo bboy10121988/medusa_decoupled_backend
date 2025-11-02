@@ -120,7 +120,7 @@ export default defineMiddlewares({
   
   routes: [
     {
-      matcher: "/google-auth/callback",
+      matcher: "/custom-hooks/google-auth-callback",
       method: ["POST"],
       middlewares: [customHooks.googleOAuthCallback],
     },
