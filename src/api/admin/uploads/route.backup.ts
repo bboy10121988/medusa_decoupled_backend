@@ -16,7 +16,7 @@ function sanitizeFilename(filename: string): string {
   const ext = path.extname(filename)
   let baseName = path.basename(filename, ext)
   
-  // 移除特殊字符,保留英文、數字、連字號和下劃線
+  // 移除特殊字符，保留英文、數字、連字號和下劃線
   baseName = baseName
     .replace(/[^\w\-_.]/g, '_')
     .replace(/_{2,}/g, '_')
@@ -31,10 +31,9 @@ export async function POST(
 ): Promise<void> {
   const startTime = Date.now()
   try {
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     console.log("📤 File upload request received via /admin/uploads")
-    console.log(`   Request content-type:`, req.headers['content-type'])
-    console.log(`   Request content-length:`, req.headers['content-length'])
+    console.log(`   Request headers:`, req.headers['content-type'])
+    console.log(`   Request size:`, req.headers['content-length'])
 
     // 確保上傳目錄存在
     const uploadDir = path.join(process.cwd(), 'static', 'uploads')
@@ -47,7 +46,7 @@ export async function POST(
     // 解析表單數據
     const parseStart = Date.now()
     const form = formidable({
-      maxFileSize: 50 * 1024 * 1024, // 50MB (與 Nginx 一致)
+      maxFileSize: 10 * 1024 * 1024, // 10MB
       multiples: true,
       uploadDir: uploadDir,
       keepExtensions: true,
@@ -59,13 +58,9 @@ export async function POST(
     const uploadedFiles: any[] = []
     const fileList = Array.isArray(files.files) ? files.files : [files.files].filter(Boolean)
     
-    console.log(`   📦 Processing ${fileList.length} file(s)...`)
-    
-    const processStart = Date.now()
     for (const file of fileList) {
       if (!file) continue
       
-      const fileStart = Date.now()
       // 清理文件名
       const sanitizedName = sanitizeFilename(file.originalFilename || file.newFilename || 'upload')
       const newPath = path.join(uploadDir, sanitizedName)
@@ -78,40 +73,28 @@ export async function POST(
       const baseUrl = process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com'
       const fullUrl = `${baseUrl}/static/uploads/${sanitizedName}`
       
-      const fileTime = Date.now() - fileStart
-      console.log(`   ✅ File: ${sanitizedName}`)
-      console.log(`      Size: ${(file.size / 1024).toFixed(2)} KB`)
-      console.log(`      Time: ${fileTime}ms`)
-      console.log(`      URL: ${fullUrl}`)
+      console.log(`✅ Uploaded file via /admin/uploads: ${sanitizedName}`)
+      console.log(`   URL: ${fullUrl}`)
       
       uploadedFiles.push({
         id: sanitizedName,
         url: fullUrl,
-        key: sanitizedName,
+        key: sanitizedName,  // 只用檔名作為 key
         filename: file.originalFilename || file.newFilename,
         size: file.size,
         mimetype: file.mimetype || 'application/octet-stream'
       })
     }
-    
-    const processTime = Date.now() - processStart
-    const totalTime = Date.now() - startTime
-    
-    console.log(`   ⏱️  Files processing: ${processTime}ms`)
+
     console.log(`✅ Successfully uploaded ${uploadedFiles.length} files via /admin/uploads`)
-    console.log(`   ⏱️  TOTAL TIME: ${totalTime}ms`)
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     
+    // 返回格式：files（與 /admin/files 相同）
     res.status(200).json({
       files: uploadedFiles
     })
     
   } catch (error) {
-    const errorTime = Date.now() - startTime
-    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     console.error("❌ Upload error:", error)
-    console.error(`   ⏱️  Failed after: ${errorTime}ms`)
-    console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     res.status(500).json({
       message: "Upload failed", 
       error: error instanceof Error ? error.message : "Unknown error"
