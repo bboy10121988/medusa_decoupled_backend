@@ -120,22 +120,6 @@ export default defineMiddlewares({
   
   routes: [
     {
-      matcher: "/custom-hooks/google-auth-callback",
-      bodyParser: { preserveRawBody: true },
-      method: ["POST"],
-      middlewares: [customHooks.googleOAuthCallback],
-    },
-    {
-      matcher: "/store/auth/google/me",
-      method: ["GET"],
-      middlewares: [
-        // 註冊我們的自定義 API 路由(舊版自定義路由)
-        (req, res, next) => {
-          return routes(req.app, process.cwd(), {})(req, res, next)
-        }
-      ],
-    },
-    {
       matcher: "/custom-hooks/ecpay-callback",
       bodyParser: { preserveRawBody: true },
       method: ["POST"],
