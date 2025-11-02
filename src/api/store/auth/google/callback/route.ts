@@ -13,10 +13,10 @@ import { OAuth2Client } from "google-auth-library";
  * 5. 生成 Medusa JWT token
  * 6. 返回 token 和 customer 資料給前端
  */
-export const POST = async (
+export async function POST(
   req: MedusaRequest<{ code: string }>,
   res: MedusaResponse
-): Promise<void> => {
+): Promise<void> {
   const { code } = req.body as { code: string };
 
   // 驗證必要參數
