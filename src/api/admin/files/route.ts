@@ -64,10 +64,15 @@ export async function POST(
       }
       
       const baseUrl = process.env.BACKEND_URL || 'http://localhost:9000'
+      const fileUrl = `${baseUrl}/static/uploads/${sanitizedName}`
+      
+      console.log(`✅ Uploaded file: ${sanitizedName}`)
+      console.log(`   BACKEND_URL: ${process.env.BACKEND_URL}`)
+      console.log(`   Generated URL: ${fileUrl}`)
       
       uploadedFiles.push({
         id: sanitizedName,
-        url: `${baseUrl}/static/uploads/${sanitizedName}`,
+        url: fileUrl,
         filename: file.originalFilename || file.newFilename,
         size: file.size,
         mimetype: file.mimetype || 'application/octet-stream'
