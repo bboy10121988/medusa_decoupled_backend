@@ -1,4 +1,5 @@
 import { loadEnv, defineConfig, Modules, ContainerRegistrationKeys } from '@medusajs/framework/utils'
+import { createCustomersWorkflow } from '@medusajs/core-flows'
 
 function requiredEnv(key: string): string {
   const value = process.env[key]
@@ -90,11 +91,10 @@ module.exports = defineConfig({
                   
                   // 使用 Medusa v2 的 workflow 創建新用戶
                   console.log(`➕ Google Auth: Creating new customer for ${email}...`)
-                  const createCustomersWorkflow = container.resolve("createCustomersWorkflow")
                   
-                  const { result } = await createCustomersWorkflow.run({
+                  const { result } = await createCustomersWorkflow(container).run({
                     input: {
-                      customers: [{
+                      customersData: [{
                         email,
                         first_name: given_name || '',
                         last_name: family_name || '',
