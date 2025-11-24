@@ -25,7 +25,14 @@ export default async function affiliateOrderPlaced({
     const linkId = (order.metadata as any)?.affiliate_link_id
 
     if (linkId) {
-      const links = await affiliateService.listAffiliateLinks({ id: linkId }, { relations: ["affiliate"] })
+      // Try to find by ID first
+      let links = await affiliateService.listAffiliateLinks({ id: linkId }, { relations: ["affiliate"] })
+      
+      // If not found, try to find by code
+      if (links.length === 0) {
+        links = await affiliateService.listAffiliateLinks({ code: linkId }, { relations: ["affiliate"] })
+      }
+
       if (links.length > 0) {
         const link = links[0]
         const commissionRate = 0.1 // 10% commission
