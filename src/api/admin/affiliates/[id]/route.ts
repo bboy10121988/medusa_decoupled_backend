@@ -1,6 +1,6 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { AFFILIATE_MODULE } from "../../../../../modules/affiliate"
-import AffiliateService from "../../../../../modules/affiliate/service"
+import { AFFILIATE_MODULE } from "../../../../modules/affiliate"
+import AffiliateService from "../../../../modules/affiliate/service"
 
 export async function GET(
   req: MedusaRequest,

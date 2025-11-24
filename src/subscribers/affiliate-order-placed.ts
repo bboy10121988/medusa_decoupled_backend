@@ -39,7 +39,7 @@ export default async function affiliateOrderPlaced({
           commission: commissionAmount,
           status: "pending",
           metadata: {
-            order_display_id: order.display_id
+            order_display_id: (order as any).display_id
           }
         })
 
