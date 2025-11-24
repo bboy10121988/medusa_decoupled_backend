@@ -31,6 +31,26 @@ const AffiliateList = () => {
     fetchAffiliates()
   }, [])
 
+  const handleStatusUpdate = async (id: string, status: 'approved' | 'rejected') => {
+    try {
+      const res = await fetch(`/admin/affiliates/${id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status })
+      })
+      
+      if (res.ok) {
+        setAffiliates(prev => prev.map(a => 
+          a.id === id ? { ...a, status } : a
+        ))
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   return (
     <Container>
       <div className="flex items-center justify-between mb-6">
@@ -57,7 +77,7 @@ const AffiliateList = () => {
               <Table.Cell>{affiliate.code}</Table.Cell>
               <Table.Cell>
                 <StatusBadge color={
-                  affiliate.status === 'active' ? 'green' : 
+                  affiliate.status === 'approved' ? 'green' : 
                   affiliate.status === 'pending' ? 'orange' : 'red'
                 }>
                   {affiliate.status}
@@ -65,9 +85,29 @@ const AffiliateList = () => {
               </Table.Cell>
               <Table.Cell>{affiliate.total_earnings}</Table.Cell>
               <Table.Cell>
-                <Link to={`/affiliates/${affiliate.id}`}>
-                  <Button variant="secondary" size="small">View</Button>
-                </Link>
+                <div className="flex gap-2">
+                  <Link to={`/affiliates/${affiliate.id}`}>
+                    <Button variant="secondary" size="small">View</Button>
+                  </Link>
+                  {affiliate.status === 'pending' && (
+                    <>
+                      <Button 
+                        variant="secondary" 
+                        size="small"
+                        onClick={() => handleStatusUpdate(affiliate.id, 'approved')}
+                      >
+                        Approve
+                      </Button>
+                      <Button 
+                        variant="secondary" 
+                        size="small"
+                        onClick={() => handleStatusUpdate(affiliate.id, 'rejected')}
+                      >
+                        Reject
+                      </Button>
+                    </>
+                  )}
+                </div>
               </Table.Cell>
             </Table.Row>
           ))}
