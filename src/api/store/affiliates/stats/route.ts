@@ -39,6 +39,33 @@ export async function GET(
   const totalRevenue = conversions.reduce((sum, c) => sum + (Number(c.amount) || 0), 0)
   const totalCommission = conversions.reduce((sum, c) => sum + (Number(c.commission) || 0), 0)
 
+  // Calculate linkStats
+  const linkStats: Record<string, { clicks: number, conversions: number, revenue: number, commission: number }> = {}
+
+  // Process clicks for linkStats
+  clicks.forEach(c => {
+    const linkId = c.link?.id
+    if (linkId) {
+      if (!linkStats[linkId]) {
+        linkStats[linkId] = { clicks: 0, conversions: 0, revenue: 0, commission: 0 }
+      }
+      linkStats[linkId].clicks++
+    }
+  })
+
+  // Process conversions for linkStats
+  conversions.forEach(c => {
+    const linkId = c.link?.id
+    if (linkId) {
+      if (!linkStats[linkId]) {
+        linkStats[linkId] = { clicks: 0, conversions: 0, revenue: 0, commission: 0 }
+      }
+      linkStats[linkId].conversions++
+      linkStats[linkId].revenue += (Number(c.amount) || 0)
+      linkStats[linkId].commission += (Number(c.commission) || 0)
+    }
+  })
+
   // Generate trend data (simplified)
   const trend: any[] = []
   for (let i = 0; i < days; i++) {
@@ -65,6 +92,7 @@ export async function GET(
     totalConversions,
     totalRevenue,
     totalCommission,
-    trend
+    trend,
+    linkStats
   })
 }

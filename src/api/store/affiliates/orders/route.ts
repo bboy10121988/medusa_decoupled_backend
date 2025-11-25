@@ -28,6 +28,7 @@ export async function GET(
     linkName: c.link?.code, 
     orderValue: c.amount,
     commission: c.commission,
+    customerEmail: (c.metadata as any)?.customer_email,
     createdAt: c.created_at,
     status: c.status
   }))

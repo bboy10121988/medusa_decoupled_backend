@@ -18,7 +18,16 @@ export async function GET(
     affiliate_id: affiliateAuth.id
   })
 
-  res.json({ links })
+  const mappedLinks = links.map(l => ({
+    id: l.id,
+    name: l.code,
+    url: l.url,
+    createdAt: l.created_at,
+    clicks: l.clicks,
+    conversions: l.conversions
+  }))
+
+  res.json({ links: mappedLinks })
 }
 
 export async function POST(
