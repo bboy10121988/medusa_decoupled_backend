@@ -15,11 +15,32 @@ export async function GET(
   const affiliateService: AffiliateService = req.scope.resolve(AFFILIATE_MODULE)
   const affiliate = await affiliateService.retrieveAffiliate(affiliateAuth.id)
 
-  // Map to frontend expected format
+  const currentSettings = (affiliate.settings as any) || {}
+
+  // Map to frontend expected format with default values
   const settings = {
     displayName: affiliate.first_name ? `${affiliate.first_name} ${affiliate.last_name || ''}`.trim() : affiliate.email,
-    website: (affiliate.metadata as any)?.website,
-    ...((affiliate.settings as any) || {})
+    website: (affiliate.metadata as any)?.website || '',
+    payoutMethod: currentSettings.payoutMethod || 'bank_transfer',
+    paypalEmail: currentSettings.paypalEmail || '',
+    bankAccount: {
+      bankName: currentSettings.bankAccount?.bankName || '',
+      accountName: currentSettings.bankAccount?.accountName || '',
+      accountNumber: currentSettings.bankAccount?.accountNumber || '',
+      branch: currentSettings.bankAccount?.branch || ''
+    },
+    notifications: {
+      emailOnNewOrder: currentSettings.notifications?.emailOnNewOrder ?? true,
+      emailOnPayment: currentSettings.notifications?.emailOnPayment ?? true,
+      emailOnCommissionUpdate: currentSettings.notifications?.emailOnCommissionUpdate ?? false
+    },
+    profile: {
+      company: currentSettings.profile?.company || '',
+      phone: currentSettings.profile?.phone || '',
+      address: currentSettings.profile?.address || '',
+      taxId: currentSettings.profile?.taxId || ''
+    },
+    ...currentSettings
   }
 
   res.json(settings)
