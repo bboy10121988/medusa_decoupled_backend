@@ -6,14 +6,21 @@ import { useParams } from "react-router-dom"
 const AffiliateDetail = () => {
   const { id } = useParams()
   const [affiliate, setAffiliate] = useState<any>(null)
+  const [stats, setStats] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const fetchAffiliate = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch(`/admin/affiliates/${id}`)
-        const data = await res.json()
-        setAffiliate(data.affiliate)
+        const [affRes, statsRes] = await Promise.all([
+          fetch(`/admin/affiliates/${id}`),
+          fetch(`/admin/affiliates/${id}/stats?days=30`)
+        ])
+        const affData = await affRes.json()
+        const statsData = await statsRes.json()
+        
+        setAffiliate(affData.affiliate)
+        setStats(statsData)
       } catch (e) {
         console.error(e)
       } finally {
@@ -22,7 +29,7 @@ const AffiliateDetail = () => {
     }
 
     if (id) {
-      fetchAffiliate()
+      fetchData()
     }
   }, [id])
 
@@ -84,10 +91,34 @@ const AffiliateDetail = () => {
           </div>
           <div>
             <Text className="text-ui-fg-subtle">Total Earnings</Text>
-            <Text>{affiliate.total_earnings}</Text>
+            <Text>${Number(affiliate.total_earnings || 0).toFixed(2)}</Text>
           </div>
         </div>
       </Container>
+
+      {stats && (
+        <Container>
+          <Heading level="h2" className="mb-4">Performance (Last 30 Days)</Heading>
+          <div className="grid grid-cols-4 gap-4">
+            <div className="p-4 bg-ui-bg-subtle rounded-lg">
+              <Text className="text-ui-fg-subtle text-sm">Clicks</Text>
+              <Heading level="h2">{stats.totalClicks}</Heading>
+            </div>
+            <div className="p-4 bg-ui-bg-subtle rounded-lg">
+              <Text className="text-ui-fg-subtle text-sm">Conversions</Text>
+              <Heading level="h2">{stats.totalConversions}</Heading>
+            </div>
+            <div className="p-4 bg-ui-bg-subtle rounded-lg">
+              <Text className="text-ui-fg-subtle text-sm">Revenue</Text>
+              <Heading level="h2">${stats.totalRevenue.toFixed(2)}</Heading>
+            </div>
+            <div className="p-4 bg-ui-bg-subtle rounded-lg">
+              <Text className="text-ui-fg-subtle text-sm">Commission</Text>
+              <Heading level="h2">${stats.totalCommission.toFixed(2)}</Heading>
+            </div>
+          </div>
+        </Container>
+      )}
 
       <Container>
         <Heading level="h2" className="mb-4">Links</Heading>
@@ -111,6 +142,13 @@ const AffiliateDetail = () => {
             ))}
           </Table.Body>
         </Table>
+      </Container>
+
+      <Container>
+        <Heading level="h2" className="mb-4">Settings</Heading>
+        <div className="bg-ui-bg-subtle p-4 rounded-lg overflow-auto">
+          <pre className="text-xs">{JSON.stringify(affiliate.settings, null, 2)}</pre>
+        </div>
       </Container>
     </div>
   )

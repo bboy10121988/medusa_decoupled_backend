@@ -77,13 +77,13 @@ const AffiliateList = () => {
               <Table.Cell>{affiliate.code}</Table.Cell>
               <Table.Cell>
                 <StatusBadge color={
-                  affiliate.status === 'approved' ? 'green' : 
+                  affiliate.status === 'approved' || affiliate.status === 'active' ? 'green' : 
                   affiliate.status === 'pending' ? 'orange' : 'red'
                 }>
                   {affiliate.status}
                 </StatusBadge>
               </Table.Cell>
-              <Table.Cell>{affiliate.total_earnings}</Table.Cell>
+              <Table.Cell>${Number(affiliate.total_earnings || 0).toFixed(2)}</Table.Cell>
               <Table.Cell>
                 <div className="flex gap-2">
                   <Link to={`/affiliates/${affiliate.id}`}>

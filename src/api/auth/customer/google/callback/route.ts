@@ -1,7 +1,7 @@
-import type { 
+import type {
   AuthenticatedMedusaRequest,
-  MedusaRequest, 
-  MedusaResponse 
+  MedusaRequest,
+  MedusaResponse
 } from "@medusajs/framework/http"
 
 /**
@@ -31,10 +31,10 @@ export const GET = async (
     console.log("Query params:", req.query)
     console.log("Auth context:", (req as any).auth_context)
     console.log("Session:", (req as any).session)
-    
+
     // Medusa v2 auth middleware 處理後,會在 req 中設定這些屬性
     const auth = (req as AuthenticatedMedusaRequest).auth_context
-    
+
     if (!auth) {
       console.error("❌ No auth_context found - OAuth might have failed")
       const frontendUrl = process.env.FRONTEND_URL || 'https://timsfantasyworld.com'
@@ -42,13 +42,13 @@ export const GET = async (
         `${frontendUrl}/tw/auth/google/callback?error=no_auth_context`
       )
     }
-    
+
     console.log("✅ Auth context found:", {
       actor_id: auth.actor_id,
       actor_type: auth.actor_type,
       auth_identity_id: auth.auth_identity_id
     })
-    
+
     // 從 JWT service 產生 token
     const jwtService = req.scope.resolve("jwt") as any
     const token = jwtService.generate({
@@ -59,10 +59,10 @@ export const GET = async (
         customer_id: auth.actor_id
       }
     })
-    
+
     console.log("🔐 JWT token generated")
     console.log("🍪 Setting cookie...")
-    
+
     // 設定 HTTP-only cookie (這是關鍵!)
     res.cookie('_medusa_jwt', token, {
       httpOnly: true,
@@ -72,20 +72,25 @@ export const GET = async (
       path: '/',
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30 天
     })
-    
+
     console.log("✅ Cookie set successfully")
-    
+
     // 重定向回前端 (帶上成功狀態)
     const frontendUrl = process.env.FRONTEND_URL || 'https://timsfantasyworld.com'
     const redirectUrl = `${frontendUrl}/tw/auth/google/callback?success=true`
-    
+
     console.log("📤 Redirecting to:", redirectUrl)
     return res.redirect(redirectUrl)
-    
+
   } catch (error) {
+    const fs = require('fs');
+    try {
+      fs.appendFileSync('/tmp/medusa-auth-debug.log', `[${new Date().toISOString()}] ❌ Route Handler Error: ${error}\nStack: ${error.stack}\n`);
+    } catch (e) { }
+
     console.error("❌ OAuth callback error:", error)
     console.error("Stack:", error instanceof Error ? error.stack : 'Unknown')
-    
+
     const frontendUrl = process.env.FRONTEND_URL || 'https://timsfantasyworld.com'
     return res.redirect(
       `${frontendUrl}/tw/auth/google/callback?error=server_error`

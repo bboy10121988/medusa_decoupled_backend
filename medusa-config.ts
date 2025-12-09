@@ -17,7 +17,7 @@ const DEFAULT_ADMIN_CORS = "http://localhost:7001,http://localhost:9000,https://
 const DEFAULT_AUTH_CORS = 'http://localhost:8000,http://localhost:9000,https://timsfantasyworld.com,https://admin.timsfantasyworld.com'
 
 module.exports = defineConfig({
-  admin: { 
+  admin: {
     disable: false,
     backendUrl: "https://admin.timsfantasyworld.com"
   },
@@ -59,22 +59,44 @@ module.exports = defineConfig({
               clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
               callbackUrl: (() => {
                 const url = process.env.GOOGLE_CALLBACK_URL || 'https://admin.timsfantasyworld.com/auth/customer/google/callback'
-                console.log('🔧 Google OAuth callbackUrl:', url)
-                console.log('🔧 Environment:', process.env.NODE_ENV)
                 return url
               })(),
               // ✅ Medusa v2 verify callback
               verify: async (container, req, accessToken, refreshToken, profile, done) => {
-                console.log("=== Google OAuth Callback ===")
-                console.log("Profile:", JSON.stringify(profile._json, null, 2))
-                
-                const { email, given_name, family_name, picture, sub: googleUserId } = profile._json
-                
+                // 強制寫入 /tmp 下唯一的 debug log
+                const fs = require('fs');
+                function log(message) {
+                  try {
+                    const time = new Date().toISOString();
+                    fs.appendFileSync('/tmp/medusa-auth-debug.log', `[${time}] ${message}\n`);
+                  } catch (err) {
+                    console.error("Failed to write log:", err);
+                  }
+                }
+
+                log("🚀 Google Verify Callback STARTED 🚀");
+                try {
+                  log("Container available: " + (!!container));
+                  log("Profile ID: " + (profile?.id || 'unknown'));
+                } catch (e) {
+                  log("Error in initial logging: " + e.message);
+                }
+
+                // --- 原本的邏輯 ---
+
+                // 處理 profile 結構可能不同的情況
+                const json = profile._json || profile;
+                const email = json.email;
+                const given_name = json.given_name;
+                const family_name = json.family_name;
+                const picture = json.picture;
+                const googleUserId = json.sub || json.id;
+
                 if (!email) {
-                  console.error("❌ Google profile missing email")
+                  log("❌ Google profile missing email")
                   return done(null, false, { message: 'Google profile did not return an email.' })
                 }
-                
+
                 try {
                   // 使用 Medusa v2 的 query API 檢查用戶是否存在
                   const query = container.resolve("query")
@@ -83,15 +105,20 @@ module.exports = defineConfig({
                     fields: ["id", "email", "first_name", "last_name", "has_account"],
                     filters: { email },
                   })
-                  
+
                   if (customers && customers.length > 0) {
-                    console.log(`✅ Google Auth: Customer ${email} already exists. Logging in.`)
+                    log(`✅ Google Auth: Customer ${email} already exists. Logging in.`)
                     return done(null, customers[0])
                   }
-                  
+
                   // 使用 Medusa v2 的 workflow 創建新用戶
-                  console.log(`➕ Google Auth: Creating new customer for ${email}...`)
-                  
+                  log(`➕ Google Auth: Creating new customer for ${email}...`)
+
+                  const { createCustomersWorkflow } = require('@medusajs/core-flows');
+                  // 注意: createCustomersWorkflow 需要傳入 container 或 invoke
+                  // 這裡嘗試直接傳入 container
+
+                  log("Running createCustomersWorkflow...")
                   const { result } = await createCustomersWorkflow(container).run({
                     input: {
                       customersData: [{
@@ -107,15 +134,15 @@ module.exports = defineConfig({
                       }]
                     }
                   })
-                  
+
                   const newCustomer = result[0]
-                  console.log(`✅ Google Auth: New customer created: ${newCustomer.id}`)
-                  
+                  log(`✅ Google Auth: New customer created: ${newCustomer.id}`)
+
                   return done(null, newCustomer)
-                  
+
                 } catch (error) {
-                  console.error("❌ Google Auth: Error in verify callback", error)
-                  console.error("Error details:", error.stack)
+                  log("❌ Google Auth: Error in verify callback: " + error.message)
+                  log("Stack: " + error.stack)
                   return done(error, false)
                 }
               }
@@ -124,10 +151,6 @@ module.exports = defineConfig({
         ],
       },
     },
-    /* 不需要再顯式設定 API 路由，
-       Medusa 已經會自動從 src/api 目錄加載路由
-       參考 @medusajs/medusa/dist/loaders/api.js 中的邏輯
-       先刪除這個配置項，讓系統默認加載 */
     {
       // Payment provider module
       resolve: '@medusajs/payment',
@@ -157,7 +180,7 @@ module.exports = defineConfig({
           }
         ],
       },
-    },    {
+    }, {
       // Redis 緩存模組 - 提升性能
       resolve: '@medusajs/cache-redis',
       key: Modules.CACHE,

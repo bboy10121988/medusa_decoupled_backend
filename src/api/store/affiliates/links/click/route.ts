@@ -14,7 +14,7 @@ export async function POST(
   }
 
   // Find the link
-  const links = await affiliateService.listAffiliateLinks({ id: linkId })
+  const links = await affiliateService.listAffiliateLinks({ id: linkId }, { relations: ['affiliate'] })
   if (links.length === 0) {
     return res.status(404).json({ message: "Link not found" })
   }
@@ -22,7 +22,7 @@ export async function POST(
 
   // Record click
   await affiliateService.createAffiliateClicks({
-    affiliate_id: affiliateId || link.affiliate.id,
+    affiliate_id: affiliateId || link.affiliate?.id,
     link_id: link.id,
     ip: req.ip,
     user_agent: req.get('User-Agent'),

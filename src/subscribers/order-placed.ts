@@ -84,26 +84,26 @@ export default async function orderPlacedHandler({
         console.log(`📧 使用 Resend API 發送訂單確認郵件`)
         const resend = new Resend(resendApiKey)
         const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"
-        
+
         const htmlContent = generateOrderConfirmationTemplate(emailData)
-        
+
         const result = await resend.emails.send({
           from: fromEmail,
           to: order.customer.email,
           subject: `訂單確認通知 - Tim's Fantasy World`,
           html: htmlContent,
         })
-        
+
         if (result.error) {
           console.error("❌ Resend 發送失敗:", result.error)
           throw result.error
         }
-        
+
         console.log(`✅ Resend 郵件發送成功: ${result.data?.id}`)
       } else {
         // 降級到 Notification Module (通常是 Local Provider)
         console.log(`⚠️ 未設定 RESEND_API_KEY，使用 Notification Module (Local)`)
-        
+
         await notificationModuleService.createNotifications({
           to: order.customer.email,
           channel: "email",
@@ -118,7 +118,7 @@ export default async function orderPlacedHandler({
       console.error("❌ 發送訂單完成通知失敗:", error)
     }
   })
-  
+
   // 立即返回，不等待郵件發送完成
 }
 
@@ -127,10 +127,10 @@ export const config: SubscriberConfig = {
 }
 
 function generateOrderConfirmationTemplate(data: any): string {
-  const itemsList = data.items?.map((item: any) => 
+  const itemsList = data.items?.map((item: any) =>
     `<li>${item.title} x ${item.quantity} - $${(item.total / 100).toFixed(2)}</li>`
   ).join('') || '<li>無商品資訊</li>'
-  
+
   const address2Line = data.shipping_address?.address_2 ? `<p>${data.shipping_address.address_2}</p>` : ''
   const shippingSection = data.shipping_address ? `
     <div style="margin: 20px 0;">
@@ -141,7 +141,7 @@ function generateOrderConfirmationTemplate(data: any): string {
       <p>${data.shipping_address.city}, ${data.shipping_address.postal_code}</p>
     </div>
   ` : ''
-  
+
   return `
     <html>
       <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

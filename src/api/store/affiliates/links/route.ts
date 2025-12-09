@@ -12,11 +12,15 @@ export async function GET(
     return res.status(401).json({ message: "Unauthorized" })
   }
 
+  console.log("[Affiliate] Listing links for affiliate:", affiliateAuth.id)
+
   const affiliateService: AffiliateService = req.scope.resolve(AFFILIATE_MODULE)
   
   const links = await affiliateService.listAffiliateLinks({
     affiliate_id: affiliateAuth.id
   })
+
+  console.log("[Affiliate] Found links:", links.length)
 
   const mappedLinks = links.map(l => ({
     id: l.id,
@@ -24,7 +28,8 @@ export async function GET(
     url: l.url,
     createdAt: l.created_at,
     clicks: l.clicks,
-    conversions: l.conversions
+    conversions: l.conversions,
+    metadata: l.metadata
   }))
 
   res.json({ links: mappedLinks })
@@ -40,7 +45,9 @@ export async function POST(
   }
 
   const affiliateService: AffiliateService = req.scope.resolve(AFFILIATE_MODULE)
-  const { url, code } = req.body as any
+  const { url, code, metadata } = req.body as any
+
+  console.log("[Affiliate] Creating link:", { affiliate_id: affiliateAuth.id, url, code, metadata })
 
   if (!url) {
     return res.status(400).json({ message: "URL is required" })
@@ -62,8 +69,42 @@ export async function POST(
     url,
     code: linkCode,
     clicks: 0,
-    conversions: 0
+    conversions: 0,
+    metadata
   })
 
+  console.log("[Affiliate] Link created:", link.id)
+
   res.json({ link })
+}
+
+export async function DELETE(
+  req: MedusaRequest,
+  res: MedusaResponse
+) {
+  const affiliateAuth = getAffiliateFromRequest(req)
+  if (!affiliateAuth) {
+    return res.status(401).json({ message: "Unauthorized" })
+  }
+
+  const { id } = req.query
+  if (!id) {
+    return res.status(400).json({ message: "ID is required" })
+  }
+
+  const affiliateService: AffiliateService = req.scope.resolve(AFFILIATE_MODULE)
+  
+  // Verify ownership
+  const links = await affiliateService.listAffiliateLinks({
+    id: id as string,
+    affiliate_id: affiliateAuth.id
+  })
+
+  if (links.length === 0) {
+    return res.status(404).json({ message: "Link not found or access denied" })
+  }
+
+  await affiliateService.deleteAffiliateLinks([id as string])
+
+  res.json({ message: "Deleted" })
 }
