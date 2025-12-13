@@ -27,7 +27,7 @@ export default async function affiliateOrderPlaced({
     if (linkId) {
       // Try to find by ID first
       let links = await affiliateService.listAffiliateLinks({ id: linkId }, { relations: ["affiliate"] })
-      
+
       // If not found, try to find by code
       if (links.length === 0) {
         links = await affiliateService.listAffiliateLinks({ code: linkId }, { relations: ["affiliate"] })
@@ -35,7 +35,11 @@ export default async function affiliateOrderPlaced({
 
       if (links.length > 0) {
         const link = links[0]
-        const commissionRate = 0.1 // 10% commission
+        // Use affiliate's specific commission rate or default to 10%
+        const commissionRate = link.affiliate.commission_rate !== null && link.affiliate.commission_rate !== undefined
+          ? Number(link.affiliate.commission_rate)
+          : 0.1
+
         const commissionAmount = Number(order.total) * commissionRate
 
         await affiliateService.createAffiliateConversions({
@@ -62,7 +66,7 @@ export default async function affiliateOrderPlaced({
           id: link.id,
           conversions: (link.conversions || 0) + 1
         })
-        
+
         console.log(`✅ Affiliate commission recorded for order ${order.id}`)
       }
     }
