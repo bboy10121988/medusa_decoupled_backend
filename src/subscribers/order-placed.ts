@@ -163,7 +163,7 @@ function generateOrderConfirmationTemplate(data: any): string {
         
         ${shippingSection}
         
-        <div style="text-align: center; margin: 30px 0;">
+        <div style="text-align: center; margin: 30px 0;">誤
           <a href="${data.order_url}" 
              style="background-color: #007cba; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
             查看訂單詳情

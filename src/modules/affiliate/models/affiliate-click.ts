@@ -7,6 +7,7 @@ export const AffiliateClick = model.define("affiliate_click", {
   ip: model.text().nullable(),
   user_agent: model.text().nullable(),
   metadata: model.json().nullable(),
+  affiliate_id: model.text(),
   affiliate: model.belongsTo(() => Affiliate, { mappedBy: "clicks" }),
   link: model.belongsTo(() => AffiliateLink, { mappedBy: "clicks_details" }),
 })

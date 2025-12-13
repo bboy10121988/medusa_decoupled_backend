@@ -6,6 +6,7 @@ import { useParams } from "react-router-dom"
 const AffiliateDetail = () => {
   const { id } = useParams()
   const [affiliate, setAffiliate] = useState<any>(null)
+  const [commissionRate, setCommissionRate] = useState(0.1)
   const [stats, setStats] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -18,8 +19,9 @@ const AffiliateDetail = () => {
         ])
         const affData = await affRes.json()
         const statsData = await statsRes.json()
-        
+
         setAffiliate(affData.affiliate)
+        setCommissionRate(affData.affiliate.commission_rate ?? 0.1)
         setStats(statsData)
       } catch (e) {
         console.error(e)
@@ -50,6 +52,35 @@ const AffiliateDetail = () => {
     }
   }
 
+  const handleUpdateCommission = async () => {
+    try {
+      await fetch(`/admin/affiliates/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commission_rate: commissionRate })
+      })
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  const handleSettleBalance = async () => {
+    if (!confirm("Are you sure you have paid this affiliate? This will reset their balance to 0.")) return;
+
+    try {
+      const res = await fetch(`/admin/affiliates/${id}/settle`, {
+        method: 'POST'
+      })
+      if (res.ok) {
+        setAffiliate({ ...affiliate, balance: 0 })
+        alert("Settlement recorded successfully")
+      }
+    } catch (e) {
+      console.error(e)
+      alert("Failed to settle balance")
+    }
+  }
+
   return (
     <div className="flex flex-col gap-y-4">
       <Container>
@@ -65,12 +96,12 @@ const AffiliateDetail = () => {
             {affiliate.status === 'active' && (
               <Button onClick={() => handleStatusChange('suspended')} variant="danger">Suspend</Button>
             )}
-             {affiliate.status === 'suspended' && (
+            {affiliate.status === 'suspended' && (
               <Button onClick={() => handleStatusChange('active')} variant="primary">Reactivate</Button>
             )}
           </div>
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Text className="text-ui-fg-subtle">Email</Text>
@@ -83,8 +114,8 @@ const AffiliateDetail = () => {
           <div>
             <Text className="text-ui-fg-subtle">Status</Text>
             <StatusBadge color={
-              affiliate.status === 'active' ? 'green' : 
-              affiliate.status === 'pending' ? 'orange' : 'red'
+              affiliate.status === 'active' ? 'green' :
+                affiliate.status === 'pending' ? 'orange' : 'red'
             }>
               {affiliate.status}
             </StatusBadge>
@@ -93,8 +124,33 @@ const AffiliateDetail = () => {
             <Text className="text-ui-fg-subtle">Total Earnings</Text>
             <Text>${Number(affiliate.total_earnings || 0).toFixed(2)}</Text>
           </div>
+          <div>
+            <Text className="text-ui-fg-subtle">Current Balance</Text>
+            <div className="flex items-center gap-x-2">
+              <Text className="text-xl font-bold">${Number(affiliate.balance || 0).toFixed(2)}</Text>
+              {Number(affiliate.balance) > 0 && (
+                <Button size="small" variant="secondary" onClick={handleSettleBalance}>
+                  Mark as Paid
+                </Button>
+              )}
+            </div>
+          </div>
+          <div>
+            <Text className="text-ui-fg-subtle">Commission Rate</Text>
+            <div className="flex items-center gap-x-2">
+              <input
+                type="number"
+                step="0.01"
+                className="w-20 border rounded px-1 py-0.5 text-small"
+                value={commissionRate}
+                onChange={(e) => setCommissionRate(Number(e.target.value))}
+                onBlur={handleUpdateCommission}
+              />
+              <Text className="text-ui-fg-subtle text-xs">{(commissionRate * 100).toFixed(0)}%</Text>
+            </div>
+          </div>
         </div>
-      </Container>
+      </Container >
 
       {stats && (
         <Container>
@@ -150,7 +206,7 @@ const AffiliateDetail = () => {
           <pre className="text-xs">{JSON.stringify(affiliate.settings, null, 2)}</pre>
         </div>
       </Container>
-    </div>
+    </div >
   )
 }
 

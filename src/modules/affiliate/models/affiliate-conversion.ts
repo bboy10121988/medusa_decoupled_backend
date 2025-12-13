@@ -9,6 +9,7 @@ export const AffiliateConversion = model.define("affiliate_conversion", {
   commission: model.bigNumber().default(0), // Commission amount
   status: model.enum(["pending", "confirmed", "cancelled"]).default("pending"),
   metadata: model.json().nullable(),
+  affiliate_id: model.text(),
   affiliate: model.belongsTo(() => Affiliate, { mappedBy: "conversions" }),
   link: model.belongsTo(() => AffiliateLink, { mappedBy: "conversions_details" }),
 })

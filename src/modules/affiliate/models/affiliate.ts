@@ -2,7 +2,7 @@ import { model } from "@medusajs/framework/utils"
 import { AffiliateLink } from "./affiliate-link"
 import { AffiliateClick } from "./affiliate-click"
 import { AffiliateConversion } from "./affiliate-conversion"
-import { AffiliateSettlement } from "./affiliate-settlement"
+// import { AffiliateSettlement } from "./affiliate-settlement"
 
 export const Affiliate = model.define("affiliate", {
   id: model.id().primaryKey(),
@@ -20,5 +20,6 @@ export const Affiliate = model.define("affiliate", {
   links: model.hasMany(() => AffiliateLink, { mappedBy: "affiliate" }),
   clicks: model.hasMany(() => AffiliateClick, { mappedBy: "affiliate" }),
   conversions: model.hasMany(() => AffiliateConversion, { mappedBy: "affiliate" }),
-  settlements: model.hasMany(() => AffiliateSettlement, { mappedBy: "affiliate" }),
+  // settlements: model.hasMany(() => AffiliateSettlement, { mappedBy: "affiliate" }),
+  commission_rate: model.float().default(0.1), // Commission rate (e.g., 0.1 for 10%)
 })
