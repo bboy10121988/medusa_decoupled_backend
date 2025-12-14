@@ -18,7 +18,7 @@ const DEFAULT_AUTH_CORS = 'http://localhost:8000,http://localhost:9000,https://t
 
 module.exports = defineConfig({
   admin: {
-    disable: false,
+    disable: true,
     backendUrl: "https://admin.timsfantasyworld.com",
     vite: (config) => {
       return {
