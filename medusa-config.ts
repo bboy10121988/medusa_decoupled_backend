@@ -26,9 +26,6 @@ module.exports = defineConfig({
         server: {
           ...config.server,
           allowedHosts: ['admin.timsfantasyworld.com', '.timsfantasyworld.com', 'localhost'],
-          hmr: {
-            clientPort: 443,
-          },
         },
       }
     },
