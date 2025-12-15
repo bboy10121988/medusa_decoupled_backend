@@ -15,22 +15,26 @@ export async function GET(
   console.log("[Affiliate] Listing links for affiliate:", affiliateAuth.id)
 
   const affiliateService: AffiliateService = req.scope.resolve(AFFILIATE_MODULE)
-  
+
   const links = await affiliateService.listAffiliateLinks({
     affiliate_id: affiliateAuth.id
   })
 
   console.log("[Affiliate] Found links:", links.length)
 
-  const mappedLinks = links.map(l => ({
-    id: l.id,
-    name: l.code,
-    url: l.url,
-    createdAt: l.created_at,
-    clicks: l.clicks,
-    conversions: l.conversions,
-    metadata: l.metadata
-  }))
+  const mappedLinks = links.map(l => {
+    console.log(`[Affiliate Link DEBUG] Link ${l.code} created_at:`, l.created_at)
+    return {
+      id: l.id,
+      name: (l.metadata as any)?.name || l.code,
+      code: l.code, // Ensure code is returned
+      url: l.url,
+      createdAt: l.created_at,
+      clicks: l.clicks,
+      conversions: l.conversions,
+      metadata: l.metadata
+    }
+  })
 
   res.json({ links: mappedLinks })
 }
@@ -93,7 +97,7 @@ export async function DELETE(
   }
 
   const affiliateService: AffiliateService = req.scope.resolve(AFFILIATE_MODULE)
-  
+
   // Verify ownership
   const links = await affiliateService.listAffiliateLinks({
     id: id as string,
