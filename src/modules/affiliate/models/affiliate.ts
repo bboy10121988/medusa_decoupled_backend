@@ -22,4 +22,5 @@ export const Affiliate = model.define("affiliate", {
   conversions: model.hasMany(() => AffiliateConversion, { mappedBy: "affiliate" }),
   // settlements: model.hasMany(() => AffiliateSettlement, { mappedBy: "affiliate" }),
   commission_rate: model.float().default(0.1), // Commission rate (e.g., 0.1 for 10%)
+  role: model.enum(["user", "admin"]).default("user"),
 })

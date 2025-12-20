@@ -13,7 +13,7 @@ export async function GET(
   }
 
   const affiliateService: AffiliateService = req.scope.resolve(AFFILIATE_MODULE)
-  
+
   const affiliate = await affiliateService.retrieveAffiliate(affiliateAuth.id)
 
   res.json({
@@ -25,6 +25,7 @@ export async function GET(
     status: affiliate.status,
     balance: affiliate.balance,
     total_earnings: affiliate.total_earnings,
-    settings: affiliate.settings
+    settings: affiliate.settings,
+    role: affiliate.role
   })
 }

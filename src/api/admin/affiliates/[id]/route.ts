@@ -10,7 +10,7 @@ export async function GET(
   const { id } = req.params
 
   const affiliate = await affiliateService.retrieveAffiliate(id, {
-    relations: ["links", "settlements"]
+    relations: ["links", "settlements", "conversions"]
   })
 
   res.json({ affiliate })

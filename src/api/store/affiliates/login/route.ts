@@ -9,7 +9,7 @@ export async function POST(
   res: MedusaResponse
 ) {
   const affiliateService: AffiliateService = req.scope.resolve(AFFILIATE_MODULE)
-  
+
   const { email, password } = req.body as any
 
   if (!email || !password) {
@@ -46,6 +46,7 @@ export async function POST(
       email: affiliate.email,
       displayName: affiliate.first_name ? `${affiliate.first_name} ${affiliate.last_name || ''}`.trim() : affiliate.email,
       status: affiliate.status,
+      role: affiliate.role,
       created_at: affiliate.created_at
     }
   })
