@@ -19,6 +19,7 @@ export async function GET(
 
   // Map to frontend expected format with default values
   const settings = {
+    email: affiliate.email,
     displayName: affiliate.first_name ? `${affiliate.first_name} ${affiliate.last_name || ''}`.trim() : affiliate.email,
     website: (affiliate.metadata as any)?.website || '',
     payoutMethod: currentSettings.payoutMethod || 'bank_transfer',
