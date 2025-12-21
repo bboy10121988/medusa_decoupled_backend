@@ -25,7 +25,7 @@ export async function GET(
 
         // Retrieve target affiliate with all necessary relations for the dashboard
         const affiliate = await affiliateService.retrieveAffiliate(id, {
-            relations: ['links', 'conversions', 'settlements']
+            relations: ['links', 'conversions']
         })
 
         res.json({ affiliate })
