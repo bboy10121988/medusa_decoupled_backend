@@ -81,7 +81,8 @@ export async function POST(
                     if (resendApiKey) {
                         const { Resend } = await import("resend")
                         const resend = new Resend(resendApiKey)
-                        const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"
+                        const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@timsfantasyworld.com"
+                        console.log(`[Commission Notification] Preparing to send from: ${fromEmail} to: ${updated.email}`)
 
                         // Send logic here
                         await resend.emails.send({
