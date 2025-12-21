@@ -33,7 +33,7 @@ export async function GET(
     notifications: {
       emailOnNewOrder: currentSettings.notifications?.emailOnNewOrder ?? true,
       emailOnPayment: currentSettings.notifications?.emailOnPayment ?? true,
-      emailOnCommissionUpdate: currentSettings.notifications?.emailOnCommissionUpdate ?? false
+      emailOnCommissionUpdate: currentSettings.notifications?.emailOnCommissionUpdate ?? true
     },
     profile: {
       company: currentSettings.profile?.company || '',

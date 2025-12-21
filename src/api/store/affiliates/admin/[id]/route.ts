@@ -67,6 +67,43 @@ export async function POST(
         const updated = await affiliateService.retrieveAffiliate(id)
 
         res.json({ affiliate: updated })
+
+        // Check if commission rate was updated and send notification
+        if (commission_rate !== undefined) {
+            const settings = (updated.settings as any) || {}
+            // Default to true (notify for important updates) unless explicitly disabled
+            const shouldNotify = settings.notifications?.emailOnCommissionUpdate !== false
+
+            // Logic to send email
+            if (shouldNotify && updated.email) {
+                try {
+                    const resendApiKey = process.env.RESEND_API_KEY
+                    if (resendApiKey) {
+                        const { Resend } = await import("resend")
+                        const resend = new Resend(resendApiKey)
+                        const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev"
+
+                        // Send logic here
+                        await resend.emails.send({
+                            from: fromEmail,
+                            to: updated.email,
+                            subject: `[通知] 您的佣金比例已調整`,
+                            html: `
+                                <h2>佣金比例調整通知</h2>
+                                <p>親愛的 ${updated.first_name || '合作夥伴'} 您好：</p>
+                                <p>您的推廣佣金比例已調整為：<strong>${(commission_rate * 100).toFixed(1)}%</strong></p>
+                                <p>此調整即刻生效，感謝您的辛勤推廣！</p>
+                                <br/>
+                                <p>Tim's Fantasy World 團隊</p>
+                            `
+                        })
+                        console.log(`[Commission Notification] Sent to ${updated.email}`)
+                    }
+                } catch (emailErr) {
+                    console.error('[Commission Notification] Failed to send:', emailErr)
+                }
+            }
+        }
     } catch (error) {
         console.error('[Admin Update API] Error:', error)
         res.status(500).json({ message: "Internal Server Error" })
