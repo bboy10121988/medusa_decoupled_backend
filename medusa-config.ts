@@ -1,5 +1,4 @@
 import { loadEnv, defineConfig, Modules, ContainerRegistrationKeys } from '@medusajs/framework/utils'
-import { createCustomersWorkflow } from '@medusajs/core-flows'
 
 function requiredEnv(key: string): string {
   const value = process.env[key]
@@ -16,7 +15,7 @@ const DEFAULT_STORE_CORS = 'http://localhost:8000,https://timsfantasyworld.com'
 const DEFAULT_ADMIN_CORS = "http://localhost:7001,http://localhost:9000,https://admin.timsfantasyworld.com,http://admin.timsfantasyworld.com,http://localhost:8000,http://35.185.142.194:9000"
 const DEFAULT_AUTH_CORS = 'http://localhost:8000,http://localhost:9000,https://timsfantasyworld.com,https://admin.timsfantasyworld.com'
 
-module.exports = defineConfig({
+export default defineConfig({
   admin: {
     disable: true,
     backendUrl: "https://admin.timsfantasyworld.com",
