@@ -52,13 +52,14 @@ git reset --hard origin/main
 echo "✅ Git pull 完成"
 
 # 2. Install Dependencies
-echo "📦 2/5 安裝依賴套件..."
+echo "📦 2/5 清理並安裝依賴套件..."
+rm -rf node_modules .medusa
 yarn install
 echo "✅ 依賴安裝完成"
 
-# 3. Build (跳過，直接使用開發模式)
+# 3. Build
 echo "🔨 3/5 建置專案..."
-echo "⚠️  跳過建置步驟，使用開發模式運行"
+yarn build
 echo "✅ 建置步驟完成"
 
 # 4. 檢查系統配置
