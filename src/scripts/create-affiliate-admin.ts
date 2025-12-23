@@ -1,4 +1,3 @@
-import { Utils } from "@medusajs/framework/utils"
 import { AFFILIATE_MODULE } from "../modules/affiliate"
 import AffiliateService from "../modules/affiliate/service"
 import * as bcrypt from "bcryptjs"

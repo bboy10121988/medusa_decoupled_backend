@@ -1,7 +1,7 @@
-import { 
-  MedusaRequest, 
+import {
+  MedusaRequest,
   MedusaResponse,
-  AuthenticatedMedusaRequest 
+  AuthenticatedMedusaRequest
 } from "@medusajs/framework/http"
 import { Modules } from "@medusajs/framework/utils"
 
@@ -12,14 +12,15 @@ export async function POST(
   res: MedusaResponse
 ): Promise<void> {
   const { id } = req.params
-  const { detail_content, detail_images } = req.body as {
+  const { detail_content, detail_images, detail_blocks } = req.body as {
     detail_content?: string
     detail_images?: string[]
+    detail_blocks?: any[]
   }
 
   try {
     const productModuleService = req.scope.resolve(Modules.PRODUCT)
-    
+
     // 獲取產品
     const product = await productModuleService.retrieveProduct(id)
 
@@ -29,10 +30,11 @@ export async function POST(
       })
       return
     }
-    
+
     // 更新 metadata，保留其他現有的 metadata
     const updatedMetadata = {
       ...product.metadata,
+      detail_blocks: detail_blocks ? JSON.stringify(detail_blocks) : product.metadata?.detail_blocks,
       detail_content: detail_content || '',
       detail_images: JSON.stringify(detail_images || [])
     }
@@ -63,7 +65,7 @@ export async function GET(
 
   try {
     const productModuleService = req.scope.resolve(Modules.PRODUCT)
-    
+
     // 獲取產品
     const product = await productModuleService.retrieveProduct(id)
 
@@ -73,9 +75,9 @@ export async function GET(
       })
       return
     }
-    
+
     const detailContent = product.metadata?.detail_content || ''
-    const detailImages = product.metadata?.detail_images 
+    const detailImages = product.metadata?.detail_images
       ? JSON.parse(product.metadata.detail_images as string)
       : []
 

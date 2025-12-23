@@ -22,15 +22,34 @@ export async function POST(
         const settlement = await affiliateService.createAffiliateSettlements({
             affiliate_id: id,
             amount: balance,
-            currency_code: "TWD", // Default to TWD for now, or fetch from region/store
-            status: "paid", // Administrative settlement assumes payment is handled
-            period_start: null, // Could be calculated
+            currency_code: "TWD",
+            status: "paid",
             period_end: new Date(),
             metadata: {
                 settled_by: "admin_manual_action",
                 settled_at: new Date().toISOString()
             }
         })
+
+        // Find and mark all associated conversions as 'paid'
+        const conversions = await affiliateService.listAffiliateConversions({
+            affiliate_id: id,
+            status: ["pending", "confirmed"]
+        })
+
+        if (conversions.length > 0) {
+            await affiliateService.updateAffiliateConversions(
+                conversions.map(c => ({
+                    id: c.id,
+                    status: "paid" as any,
+                    metadata: {
+                        ...c.metadata as any,
+                        settlement_id: settlement.id,
+                        paid_at: new Date().toISOString()
+                    }
+                }))
+            )
+        }
 
         // Reset affiliate balance
         await affiliateService.updateAffiliates({
@@ -40,7 +59,8 @@ export async function POST(
 
         res.json({
             message: "Settlement created successfully",
-            settlement
+            settlement,
+            conversions_updated: conversions.length
         })
 
     } catch (error) {

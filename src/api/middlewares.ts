@@ -1,5 +1,6 @@
 // src/api/middlewares.ts
-import { defineMiddlewares,
+import {
+  defineMiddlewares,
   errorHandler,
   MedusaNextFunction,
   MedusaRequest,
@@ -21,8 +22,8 @@ export default defineMiddlewares({
     next: MedusaNextFunction
   ) => {
 
-    console.log("middleware catched error:",error)
-    console.log("error path:",req.path)
+    console.log("middleware catched error:", error)
+    console.log("error path:", req.path)
 
 
 
@@ -32,9 +33,9 @@ export default defineMiddlewares({
     // const adminPaymentRefundPattern = /^\/admin\/payments\/pay_[A-Z0-9]{26}\/refund$/
     if (req.path.match(/^\/admin\/payments\/pay_[A-Z0-9]{26}\/refund$/)) {
 
-      console.log("捕捉到退款路由的錯誤處理：",error)
+      console.log("捕捉到退款路由的錯誤處理：", error)
 
-      switch(error.message){
+      switch (error.message) {
 
         case "信用卡退款查詢無法取得訂單狀態":
           console.log("信用卡退款查詢無法取得訂單狀態")
@@ -72,7 +73,7 @@ export default defineMiddlewares({
 
       //   return
       // }
-    }    
+    }
 
 
 
@@ -113,17 +114,20 @@ export default defineMiddlewares({
 
     // }
 
-    
+
     // 對於其他錯誤,使用原始的錯誤處理器
     return originalErrorHandler(error, req, res, next)
   },
-  
+
   routes: [
+
+
+
     {
       matcher: "/custom-hooks/ecpay-callback",
       bodyParser: { preserveRawBody: true },
       method: ["POST"],
-      middlewares:[
+      middlewares: [
         customHooks.ecpayCallBack,
       ],
     },

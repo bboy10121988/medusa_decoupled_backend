@@ -10,68 +10,56 @@ export default async function affiliateOrderPlaced({
   const affiliateService: AffiliateService = container.resolve(AFFILIATE_MODULE)
 
   try {
+    const fs = require('fs');
+    const log = (msg: string) => {
+      try {
+        fs.appendFileSync('/tmp/affiliate-sub-debug.log', `[${new Date().toISOString()}] ${msg}\n`);
+      } catch (e) { }
+    }
+
+    log(`[Affiliate Subscriber] Processing order.placed event for ID: ${data.id}`)
+    console.log(`[Affiliate Subscriber] Processing order.placed event for ID: ${data.id}`)
+
     const { data: [order] } = await query.graph({
       entity: "order",
-      fields: ["id", "display_id", "total", "metadata"],
+      fields: ["id", "display_id", "total", "metadata", "currency_code"],
       filters: {
         id: data.id,
       },
     })
 
-    if (!order) return
+    if (!order) {
+      console.warn(`[Affiliate Subscriber] Order ${data.id} not found in query.graph`)
+      return
+    }
+
+    console.log(`[Affiliate Subscriber] Order Found: ${(order as any).display_id}. Metadata:`, JSON.stringify(order.metadata))
 
     // Check if order has affiliate info in metadata
-    // Assuming frontend sets metadata: { affiliate_link_id: "..." }
     const linkId = (order.metadata as any)?.affiliate_link_id
 
     if (linkId) {
-      // Try to find by ID first
-      let links = await affiliateService.listAffiliateLinks({ id: linkId }, { relations: ["affiliate"] })
+      console.log(`[Affiliate Subscriber] Found affiliate_link_id: ${linkId}. Registering conversion...`)
+      const conversion = await affiliateService.registerConversion({
+        order_id: order.id,
+        order_amount: order.total,
+        link_id: linkId,
+        metadata: {
+          order_display_id: (order as any).display_id,
+          currency_code: order.currency_code
+        }
+      })
 
-      // If not found, try to find by code
-      if (links.length === 0) {
-        links = await affiliateService.listAffiliateLinks({ code: linkId }, { relations: ["affiliate"] })
+      if (conversion) {
+        console.log(`✅ [Affiliate Subscriber] Conversion registered successfully: ${conversion.id}`)
+      } else {
+        console.warn(`❌ [Affiliate Subscriber] registerConversion returned null for order ${order.id}`)
       }
-
-      if (links.length > 0) {
-        const link = links[0]
-        // Use affiliate's specific commission rate or default to 10%
-        const commissionRate = link.affiliate.commission_rate !== null && link.affiliate.commission_rate !== undefined
-          ? Number(link.affiliate.commission_rate)
-          : 0.1
-
-        const commissionAmount = Number(order.total) * commissionRate
-
-        await affiliateService.createAffiliateConversions({
-          affiliate_id: link.affiliate.id,
-          link_id: link.id,
-          order_id: order.id,
-          amount: order.total,
-          commission: commissionAmount,
-          status: "pending",
-          metadata: {
-            order_display_id: (order as any).display_id
-          }
-        })
-
-        // Update affiliate stats
-        await affiliateService.updateAffiliates({
-          id: link.affiliate.id,
-          total_earnings: Number(link.affiliate.total_earnings) + commissionAmount,
-          balance: Number(link.affiliate.balance) + commissionAmount
-        })
-
-        // Update link stats
-        await affiliateService.updateAffiliateLinks({
-          id: link.id,
-          conversions: (link.conversions || 0) + 1
-        })
-
-        console.log(`✅ Affiliate commission recorded for order ${order.id}`)
-      }
+    } else {
+      console.log(`[Affiliate Subscriber] No affiliate_link_id found in metadata for order ${order.id}`)
     }
   } catch (error) {
-    console.error("❌ Error processing affiliate commission:", error)
+    console.error("❌ [Affiliate Subscriber] FATAL ERROR:", error)
   }
 }
 

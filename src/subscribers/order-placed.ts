@@ -116,26 +116,7 @@ export default async function orderPlacedHandler({
         console.log(`✅ 訂單完成通知已發送給 ${order.customer.email} (使用 Local 提供者)`)
       }
 
-      // --- Affiliate Tracking Logic ---
-      if (order?.metadata?.affiliate_link_id) {
-        console.log(`[Affiliate Tracking] Found affiliate link ID: ${order.metadata.affiliate_link_id} for order ${order.id}`)
-
-        try {
-          const affiliateService: AffiliateService = container.resolve(AFFILIATE_MODULE)
-
-          await affiliateService.registerConversion({
-            order_id: order.id,
-            order_amount: order.total,
-            link_id: order.metadata.affiliate_link_id as string,
-            metadata: {
-              currency_code: order.currency_code
-            }
-          })
-        } catch (affError) {
-          console.error("❌ Affiliate attribution failed:", affError)
-        }
-      }
-
+      // --- Affiliate Tracking Logic Removed (Handled by specialized subscriber) ---
     } catch (error) {
       console.error("❌ 發送訂單完成通知失敗:", error)
     }
