@@ -49,7 +49,7 @@ class AffiliateService extends MedusaService({
       if (affiliates.length > 0) {
         const affiliate = affiliates[0]
         // Try to find any link for this affiliate to use as a placeholder
-        const affLinks = await this.listAffiliateLinks({ affiliate_id: affiliate.id })
+        const affLinks = await this.listAffiliateLinks({ affiliate: { id: affiliate.id } })
         if (affLinks.length > 0) {
           links = [{ ...affLinks[0], affiliate } as any]
           console.log(`[AffiliateService] Attribution via Affiliate Code fallback to link: ${affLinks[0].id}`)
