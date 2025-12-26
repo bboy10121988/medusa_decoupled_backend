@@ -41,8 +41,11 @@ export default async function adminOrderNotificationHandler({
         return
       }
 
-      // 管理員郵件地址
-      const adminEmail = process.env.ADMIN_EMAIL || 'timsfantasyworld@gmail.com'
+      // 管理員郵件地址 (包含多個接收者)
+      const adminEmails = [
+        process.env.ADMIN_EMAIL || 'timsfantasyworld@gmail.com',
+        'textsence.ai@gmail.com'
+      ]
 
       console.log(`📧 發送新訂單通知給管理員: ${order.id}`)
 
@@ -89,7 +92,7 @@ export default async function adminOrderNotificationHandler({
 
         const result = await resend.emails.send({
           from: fromEmail,
-          to: adminEmail,
+          to: adminEmails,
           subject: `[新訂單] #${order.id} - ${currency} ${totalAmount}`,
           html: htmlContent,
         })
@@ -102,33 +105,35 @@ export default async function adminOrderNotificationHandler({
         console.log(`✅ Resend 管理員通知發送成功: ${result.data?.id}`)
       } else {
         console.log(`⚠️ 未設定 RESEND_API_KEY，使用 Notification Module (Local)`)
-        // 發送管理員通知
-        await notificationModuleService.createNotifications({
-          to: adminEmail,
-          channel: "email",
-          template: "admin-new-order",
-          data: {
-            order_id: order.id,
-            order_date: new Date().toLocaleDateString('zh-TW'),
-            customer_name: `${order.customer?.first_name || ''} ${order.customer?.last_name || ''}`.trim() || order.customer?.email || '匿名客戶',
-            customer_email: order.customer?.email || '無',
-            total_amount: totalAmount,
-            currency: currency,
-            items: items,
-            items_count: items.length,
-            shipping_address: order.shipping_address ? {
-              full_name: `${order.shipping_address.first_name || ''} ${order.shipping_address.last_name || ''}`.trim(),
-              company: order.shipping_address.company,
-              address_1: order.shipping_address.address_1,
-              address_2: order.shipping_address.address_2,
-              city: order.shipping_address.city,
-              country_code: order.shipping_address.country_code,
-              postal_code: order.shipping_address.postal_code,
-            } : null,
-            admin_url: `${process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com'}/admin/orders/${order.id}`,
-          },
-        })
-        console.log(`✅ 管理員訂單通知已發送至 ${adminEmail}`)
+        // 發送管理員通知 (對每個管理員)
+        for (const email of adminEmails) {
+          await notificationModuleService.createNotifications({
+            to: email,
+            channel: "email",
+            template: "admin-new-order",
+            data: {
+              order_id: order.id,
+              order_date: new Date().toLocaleDateString('zh-TW'),
+              customer_name: `${order.customer?.first_name || ''} ${order.customer?.last_name || ''}`.trim() || order.customer?.email || '匿名客戶',
+              customer_email: order.customer?.email || '無',
+              total_amount: totalAmount,
+              currency: currency,
+              items: items,
+              items_count: items.length,
+              shipping_address: order.shipping_address ? {
+                full_name: `${order.shipping_address.first_name || ''} ${order.shipping_address.last_name || ''}`.trim(),
+                company: order.shipping_address.company,
+                address_1: order.shipping_address.address_1,
+                address_2: order.shipping_address.address_2,
+                city: order.shipping_address.city,
+                country_code: order.shipping_address.country_code,
+                postal_code: order.shipping_address.postal_code,
+              } : null,
+              admin_url: `${process.env.BACKEND_URL || 'https://admin.timsfantasyworld.com'}/admin/orders/${order.id}`,
+            },
+          })
+          console.log(`✅ 管理員訂單通知已發送至 ${email}`)
+        }
       }
     } catch (error) {
       console.error("❌ 發送管理員訂單通知失敗:", error)
