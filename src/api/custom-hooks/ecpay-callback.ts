@@ -1,88 +1,106 @@
 import type { MedusaRequest, MedusaResponse, MedusaNextFunction } from "@medusajs/framework/http"
-import { Modules,} from "@medusajs/framework/utils"
-import { capturePaymentWorkflow,updateOrderWorkflow,cancelOrderWorkflow,deletePaymentSessionsWorkflow,createPaymentSessionsWorkflow } from "@medusajs/medusa/core-flows"
+import { Modules, } from "@medusajs/framework/utils"
+import { capturePaymentWorkflow, updateOrderWorkflow, cancelOrderWorkflow, deletePaymentSessionsWorkflow, createPaymentSessionsWorkflow } from "@medusajs/medusa/core-flows"
 import EcpayCallbackBody from "./ecpaycallbackbody"
 
-const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: MedusaNextFunction) => {
-    
+const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse, next: MedusaNextFunction) => {
+
     const action: string = "ecpayCallBack"
     const handler: string = "ecpayment_callback"
-    
-    console.log(action,"Received ECPay callback",req.body)
-    
+
+    console.log(action, "--- NEW CALLBACK RECEIVED ---")
+    console.log(action, "Headers:", JSON.stringify(req.headers, null, 2))
+    console.log(action, "Body Type:", typeof req.body)
+    console.log(action, "Body Content:", JSON.stringify(req.body, null, 2))
+
+    if (req.rawBody) {
+        console.log(action, "Raw Body Length:", req.rawBody.length)
+        console.log(action, "Raw Body (string):", req.rawBody.toString())
+    } else {
+        console.log(action, "Raw Body is MISSING")
+    }
+
     try {
         const body = req.body
+        let parsedData: EcpayCallbackBody | null = (body && Object.keys(body).length > 0) ? body as EcpayCallbackBody : null
 
-        if (!body) {
-            throw new Error("Request body is empty")
+        // 如果 body 是空的，嘗試從 rawBody 解析 (form-urlencoded)
+        if (!parsedData && req.rawBody) {
+            console.log(action, "Attempting to parse rawBody as form-urlencoded...")
+            const querystring = require('querystring');
+            parsedData = querystring.parse(req.rawBody.toString()) as any;
+            console.log(action, "Parsed from rawBody:", parsedData)
         }
 
-        const data = body as EcpayCallbackBody
+        if (!parsedData) {
+            throw new Error("Request body is empty and rawBody parsing failed")
+        }
 
-        console.log(action,"Parsed ECPay callback data:",data)
+        const data: EcpayCallbackBody = parsedData
+        console.log(action, "Final data to process:", data)
 
 
         let orderID: string = ""
         let paymentCollectionID: string = ""
         let paymentSessionID: string = ""
 
-        if (!data.PaymentType || data.PaymentType !== "Credit_CreditCard"){
-            console.log(action,"Only Credit_CreditCard is supported, got:",data.PaymentType)
+        if (!data.PaymentType || data.PaymentType !== "Credit_CreditCard") {
+            console.log(action, "Only Credit_CreditCard is supported, got:", data.PaymentType)
             throw new Error("Only Credit_CreditCard is supported")
         }
-        
 
-        if (!data.CustomField2){
+
+        if (!data.CustomField2) {
             throw new Error("CustomField2 (order_id) is missing")
-        }else{
+        } else {
             orderID = data.CustomField2
         }
 
-        if (!data.CustomField3){
+        if (!data.CustomField3) {
             throw new Error("CustomField3 (payment_collection_id) is missing")
-        }else{
+        } else {
             paymentCollectionID = data.CustomField3
         }
 
-        if (!data.CustomField4){
+        if (!data.CustomField4) {
             throw new Error("CustomField4 (payment_session_id) is missing")
-        }else{
+        } else {
             paymentSessionID = data.CustomField4
         }
 
 
-        
+
         // 正確：直接拿到 query 實例，呼叫 graph
         const query = req.scope.resolve("query")
 
         const { data: orders } = await query.graph({
             entity: "order",
-            fields: ["id", "payment_collections.*","payment_collections.payments.*"],
+            fields: ["id", "payment_collections.*", "payment_collections.payments.*"],
             filters: { id: orderID },
         })
 
-        console.log(action,"list orders : ",orders)
+        console.log(action, "list orders : ", orders)
 
         const theOrder = orders?.find((order) => order!.id === orderID)
 
-        if (!theOrder){
-            console.log(action,"order not found by orderID:",orderID)
+        if (!theOrder) {
+            console.log(action, "order not found by orderID:", orderID)
             throw new Error("Order not found")
         }
 
-        console.log(action,"find order by orderID:",theOrder)
+        console.log(action, "find order by orderID:", theOrder)
 
         const thePaymentCollection = theOrder.payment_collections?.find((paymentCollection) => paymentCollection!.id === paymentCollectionID)
 
-        if (!thePaymentCollection){
-            console.log(action,"paymentCollection not found by paymentCollectionID:",paymentCollectionID)
+        if (!thePaymentCollection) {
+            console.log(action, "paymentCollection not found by paymentCollectionID:", paymentCollectionID)
             throw new Error("PaymentCollection not found")
         }
 
         const thePayment = thePaymentCollection.payments?.find((payment) => payment?.payment_session_id === paymentSessionID)
 
-        if (!thePayment){
-            console.log(action,"payment not found by paymentSessionID:",paymentSessionID)
+        if (!thePayment) {
+            console.log(action, "payment not found by paymentSessionID:", paymentSessionID)
             throw new Error("Payment not found")
         }
 
@@ -90,7 +108,7 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
 
         // 試驗証明：updatePaymentSession根本一點屁用沒有，裡面的data只有在init的時候可以何存，之後的更新都不會影響到payment的data欄位
         // 只好把原本data的地方直接放到order的metadata裡面去
-        
+
         // const paymentUpdateSession = await paymentModuleService.updatePaymentSession(
         //     {
         //         id:paymentSessionID,
@@ -111,7 +129,7 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
         // )
         // console.log(action,"updatePaymentSession result:",paymentUpdateSession)
 
-        console.log(action,"excute capturePaymentWorkflow, paymentID:",thePayment.id)
+        console.log(action, "excute capturePaymentWorkflow, paymentID:", thePayment.id)
 
         const ecpayData = {
             payment_source: "ecpay",
@@ -122,27 +140,27 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
             payment_amount: data.amount,
             merchant_trade_no: data.MerchantTradeNo,
             trade_no: data.TradeNo,
-            credit_refund_id:data.gwsr,
+            credit_refund_id: data.gwsr,
         }
 
         await updateOrderWorkflow(req.scope).run({
-            input:{
+            input: {
                 id: orderID,
                 user_id: handler,
-                metadata:ecpayData
+                metadata: ecpayData
             }
         })
 
-        if (data.RtnCode === "1"){
+        if (data.RtnCode === "1") {
 
             // 如果付款成功，就刪掉原本的payment session，並且建立一個含有正確data的新的payment session
 
             // 取消原本的payment
             await paymentModuleService.cancelPayment(thePayment.id)
-            
+
             // 刪除原本的payment session
             await paymentModuleService.deletePaymentSession(paymentSessionID)
-            
+
             // 建立一個新的payment session，並且把callback data放進去
             const createdPaymentSession = await paymentModuleService.createPaymentSession(
                 paymentCollectionID,
@@ -150,17 +168,17 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
                     provider_id: thePayment.provider_id,
                     currency_code: thePayment.currency_code,
                     amount: thePayment.amount,
-                    data:ecpayData
+                    data: ecpayData
                 }
             )
 
-            console.log(action,"create new payment session result:",createdPaymentSession)
+            console.log(action, "create new payment session result:", createdPaymentSession)
 
             // 藉由auth新的payment session來capture payment
-            const createdPayment = await paymentModuleService.authorizePaymentSession(createdPaymentSession.id,{})
+            const createdPayment = await paymentModuleService.authorizePaymentSession(createdPaymentSession.id, {})
 
-            console.log(action,"authorizePaymentSession result:",createdPayment)
-            
+            console.log(action, "authorizePaymentSession result:", createdPayment)
+
             await capturePaymentWorkflow(req.scope).run({
                 input: {
                     payment_id: createdPayment.id,
@@ -168,9 +186,9 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
                 },
             })
 
-        }else{
+        } else {
             await cancelOrderWorkflow(req.scope).run({
-                input:{
+                input: {
                     order_id: orderID,
                     canceled_by: handler,
                 }
@@ -178,11 +196,11 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse,next: Medus
         }
 
     } catch (error) {
-        console.error(action,"Error parsing request body:", error)
+        console.error(action, "Error parsing request body:", error)
         res.status(400).send("0|Error")
         return
     }
-    
+
     res.status(200).send("1|OK")
 }
 
