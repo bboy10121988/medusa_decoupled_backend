@@ -1,6 +1,6 @@
 import type { MedusaRequest, MedusaResponse, MedusaNextFunction } from "@medusajs/framework/http"
 import { Modules, } from "@medusajs/framework/utils"
-import { capturePaymentWorkflow, updateOrderWorkflow, cancelOrderWorkflow, deletePaymentSessionsWorkflow, createPaymentSessionsWorkflow } from "@medusajs/medusa/core-flows"
+import { capturePaymentWorkflow, updateOrderWorkflow, cancelOrderWorkflow } from "@medusajs/medusa/core-flows"
 import EcpayCallbackBody from "./ecpaycallbackbody"
 
 const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse, next: MedusaNextFunction) => {
@@ -21,8 +21,8 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse, next: Medu
     }
 
     try {
-        const body = req.body
-        let parsedData: EcpayCallbackBody | null = (body && Object.keys(body).length > 0) ? body as EcpayCallbackBody : null
+        const bodyContent = req.body
+        let parsedData: EcpayCallbackBody | null = (bodyContent && Object.keys(bodyContent).length > 0) ? bodyContent as EcpayCallbackBody : null
 
         // 如果 body 是空的，嘗試從 rawBody 解析 (form-urlencoded)
         if (!parsedData && req.rawBody) {
@@ -81,7 +81,7 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse, next: Medu
 
         console.log(action, "list orders : ", orders)
 
-        const theOrder = orders?.find((order) => order!.id === orderID)
+        const theOrder = (orders as any[])?.find((order) => order!.id === orderID)
 
         if (!theOrder) {
             console.log(action, "order not found by orderID:", orderID)
@@ -90,71 +90,45 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse, next: Medu
 
         console.log(action, "find order by orderID:", theOrder)
 
-        const thePaymentCollection = theOrder.payment_collections?.find((paymentCollection) => paymentCollection!.id === paymentCollectionID)
+        const thePaymentCollection = (theOrder.payment_collections as any[])?.find((paymentCollection) => paymentCollection!.id === paymentCollectionID)
 
         if (!thePaymentCollection) {
             console.log(action, "paymentCollection not found by paymentCollectionID:", paymentCollectionID)
             throw new Error("PaymentCollection not found")
         }
 
-        const thePayment = thePaymentCollection.payments?.find((payment) => payment?.payment_session_id === paymentSessionID)
+        const thePayment = (thePaymentCollection.payments as any[])?.find((payment) => payment?.payment_session_id === paymentSessionID)
 
         if (!thePayment) {
             console.log(action, "payment not found by paymentSessionID:", paymentSessionID)
             throw new Error("Payment not found")
         }
 
-        const paymentModuleService = req.scope.resolve(Modules.PAYMENT)
-
-        // 試驗証明：updatePaymentSession根本一點屁用沒有，裡面的data只有在init的時候可以何存，之後的更新都不會影響到payment的data欄位
-        // 只好把原本data的地方直接放到order的metadata裡面去
-
-        // const paymentUpdateSession = await paymentModuleService.updatePaymentSession(
-        //     {
-        //         id:paymentSessionID,
-        //         currency_code:thePayment.currency_code,
-        //         amount:thePayment.amount,
-        //         data:{
-        //             type: data.PaymentType,
-        //             rtn_code: data.RtnCode,
-        //             amount: data.amount,
-        //             payment_type: data.PaymentType,
-        //             payment_status: data.RtnCode,
-        //             merchant_trade_no: data.MerchantTradeNo,
-        //             trade_no: data.TradeNo,
-        //             credit_refund_id: data.gwsr,
-        //             status: "authorized"
-        //         },
-        //     }
-        // )
-        // console.log(action,"updatePaymentSession result:",paymentUpdateSession)
-
-        console.log(action, "excute capturePaymentWorkflow, paymentID:", thePayment.id)
-
-        const ecpayData = {
-            payment_source: "ecpay",
-            payment_type: data.PaymentType,
-            payment_code: data.RtnCode,
-            payment_msg: data.RtnMsg,
-            payment_status: data.RtnCode === "1" ? "success" : "failed",
-            payment_amount: data.amount,
-            merchant_trade_no: data.MerchantTradeNo,
-            trade_no: data.TradeNo,
-            credit_refund_id: data.gwsr,
-        }
-
-        await updateOrderWorkflow(req.scope).run({
-            input: {
-                id: orderID,
-                user_id: handler,
-                metadata: ecpayData
-            }
-        })
+        const paymentModuleService: any = req.scope.resolve(Modules.PAYMENT)
 
         if (data.RtnCode === "1") {
+            const ecpayData = {
+                payment_source: "ecpay",
+                payment_type: data.PaymentType,
+                payment_code: data.RtnCode,
+                payment_msg: data.RtnMsg,
+                payment_status: "success",
+                payment_amount: data.amount,
+                merchant_trade_no: data.MerchantTradeNo,
+                trade_no: data.TradeNo,
+                credit_refund_id: data.gwsr,
+            }
+
+            // 更新訂單 Metadata
+            await updateOrderWorkflow(req.scope).run({
+                input: {
+                    id: orderID,
+                    user_id: handler,
+                    metadata: ecpayData
+                }
+            })
 
             // 如果付款成功，就刪掉原本的payment session，並且建立一個含有正確data的新的payment session
-
             // 取消原本的payment
             await paymentModuleService.cancelPayment(thePayment.id)
 
@@ -182,21 +156,26 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse, next: Medu
             await capturePaymentWorkflow(req.scope).run({
                 input: {
                     payment_id: createdPayment.id,
-                    amount: data.amount
+                    amount: Number(data.amount)
                 },
             })
 
-        } else {
+        } else if (data.RtnCode) {
+            // 只有在明確收到綠界的錯誤代碼（非 1）時，才取消訂單
+            console.log(action, "Payment failed as per ECPay report. RtnCode:", data.RtnCode, "RtnMsg:", data.RtnMsg)
             await cancelOrderWorkflow(req.scope).run({
                 input: {
                     order_id: orderID,
                     canceled_by: handler,
                 }
             })
+        } else {
+            // 如果連 RtnCode 都沒有，說明資料真的有問題，絕對不能取消訂單，直接拋錯讓綠界之後重發
+            throw new Error("Invalid ECPay callback data: RtnCode is missing")
         }
 
-    } catch (error) {
-        console.error(action, "Error parsing request body:", error)
+    } catch (error: any) {
+        console.error(action, "Error processing ECPay callback:", error)
         res.status(400).send("0|Error")
         return
     }
