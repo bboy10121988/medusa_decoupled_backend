@@ -1,36 +1,22 @@
+import { ExecArgs } from "@medusajs/framework/types"
 
-import {
-    createContext,
-    run
-} from "@medusajs/framework/utils"
-import { Modules } from "@medusajs/framework/utils"
-
-async function checkLatestOrder() {
-    const query = createContext().query
+async function checkLatestOrder({ container }: ExecArgs) {
+    const query = container.resolve("query")
 
     try {
         const { data: orders } = await query.graph({
             entity: "order",
             fields: [
-                "*",
+                "id",
+                "status",
                 "total",
                 "subtotal",
-                "tax_total",
-                "shipping_total",
-                "discount_total",
                 "currency_code",
-                "status",
-                "payment_status",
-                "fulfillment_status",
+                "metadata",
                 "items.*",
                 "payment_collections.*",
-                "payment_collections.payments.*",
-                "metadata"
-            ],
-            options: {
-                sort: { created_at: "DESC" },
-                take: 1
-            }
+                "payment_collections.payments.*"
+            ]
         })
 
         if (!orders || orders.length === 0) {
@@ -38,12 +24,15 @@ async function checkLatestOrder() {
             return
         }
 
-        const order = orders[0]
+        // 手動排序，因為 graph 可能不支持在該實體上直接排序或分頁
+        const sortedOrders = orders.sort((a: any, b: any) =>
+            new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+        )
+
+        const order = sortedOrders[0]
         console.log("--- Order Info ---")
         console.log("ID:", order.id)
-        console.log("Display ID:", order.display_id)
         console.log("Status:", order.status)
-        console.log("Payment Status:", order.payment_status)
         console.log("Total:", order.total)
         console.log("Currency:", order.currency_code)
         console.log("Metadata:", JSON.stringify(order.metadata, null, 2))
@@ -54,20 +43,15 @@ async function checkLatestOrder() {
                 console.log(`PC ID: ${pc.id}, Status: ${pc.status}, Amount: ${pc.amount}`)
                 if (pc.payments) {
                     pc.payments.forEach((p: any) => {
-                        console.log(`  Payment ID: ${p.id}, Amount: ${p.amount}, Status: ${p.status}`)
+                        console.log(`  Payment ID: ${p.id}, Amount: ${p.amount}, Status: ${p.status}, Session: ${p.payment_session_id}`)
                     })
                 }
             })
         }
 
     } catch (error) {
-        console.error("Error:", error)
+        console.error("Error in script:", error)
     }
-}
-
-// Check if running directly
-if (require.main === module) {
-    checkLatestOrder()
 }
 
 export default checkLatestOrder
