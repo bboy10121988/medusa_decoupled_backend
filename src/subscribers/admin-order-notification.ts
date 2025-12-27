@@ -20,6 +20,9 @@ export default async function adminOrderNotificationHandler({
     const query = container.resolve("query")
 
     try {
+      // ⏳ 延遲 3.5 秒以確保所有關聯資料 (如 Shipping Methods) 都已完整寫入資料庫
+      await new Promise(resolve => setTimeout(resolve, 3500))
+
       // 查詢訂單詳細資訊
       const { data: [order] } = await query.graph({
         entity: "order",
