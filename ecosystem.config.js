@@ -1,8 +1,8 @@
+```javascript
 module.exports = {
   apps: [{
     name: 'medusa-backend',
-    script: 'npm',
-    args: 'run dev',
+    script: 'npm run start',
     cwd: '/home/raychou/projects/backend',
     env: {
       NODE_ENV: 'production',
