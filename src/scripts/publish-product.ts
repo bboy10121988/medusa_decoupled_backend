@@ -1,10 +1,10 @@
 
 import { ExecArgs } from "@medusajs/framework/types"
-import { updateDetailProductWorkflow } from "@medusajs/medusa/core-flows"
+import { Modules } from "@medusajs/framework/utils"
 
 async function publishLatestProduct({ container }: ExecArgs) {
     const query = container.resolve("query")
-    const workflow = updateDetailProductWorkflow(container)
+    const productModuleService = container.resolve(Modules.PRODUCT)
 
     try {
         // 1. Find the latest draft product
@@ -28,12 +28,9 @@ async function publishLatestProduct({ container }: ExecArgs) {
         const product = products[0]
         console.log(`Found Draft Product: ${product.title} (${product.id})`)
 
-        // 2. Publish it
-        await workflow.run({
-            input: {
-                filters: { id: product.id },
-                data: { status: "published" }
-            }
+        // 2. Publish it using Product Module Service
+        await productModuleService.updateProducts(product.id, {
+            status: "published"
         })
 
         console.log(`✅ Product published successfully!`)
