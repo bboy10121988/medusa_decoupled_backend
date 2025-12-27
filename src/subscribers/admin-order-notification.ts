@@ -116,6 +116,7 @@ export default async function adminOrderNotificationHandler({
           currency: currency,
           items: items,
           items_count: items.length,
+          shipping_methods: order.shipping_methods,
           shipping_address: order.shipping_address ? {
             full_name: `${order.shipping_address.first_name || ''} ${order.shipping_address.last_name || ''}`.trim(),
             company: order.shipping_address.company,
@@ -194,9 +195,21 @@ function generateAdminNotificationTemplate(data: any): string {
         </div>
         
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
         <p style="color: #999; font-size: 12px;">
           此為系統自動發送的內部通知，請勿回覆。
         </p>
+
+        <!-- DEBUG INFO START -->
+        <div style="margin-top: 30px; padding: 10px; background: #f5f5f5; border: 1px dashed #ccc; font-size: 10px; color: #666; font-family: monospace;">
+          <p><strong>Debugging Info:</strong></p>
+          <pre style="white-space: pre-wrap;">
+Items: ${JSON.stringify(data.items.map((i: any) => ({ t: i.title, unit_price: i.unit_price, qty: i.quantity, tot: i.total })), null, 2)}
+Shipping: ${JSON.stringify(data.shipping_methods || [], null, 2)}
+Total Raw: ${data.total_amount}
+          </pre>
+        </div>
+        <!-- DEBUG INFO END -->
       </body>
     </html>
   `
