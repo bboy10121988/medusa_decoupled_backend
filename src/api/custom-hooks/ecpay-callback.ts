@@ -107,9 +107,10 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse, next: Medu
         const paymentModuleService: any = req.scope.resolve(Modules.PAYMENT)
 
         if (data.RtnCode === "1") {
-            // 優先使用 TradeAmt (綠界標準欄位)，其次才是 amount (自定義欄位)，最後備份使用訂單金額
-            const callbackAmount = data.TradeAmt || data.amount || theOrder.total
-            console.log(action, `Payment SUCCESS. Using amount: ${callbackAmount} (TradeAmt: ${data.TradeAmt}, amount: ${data.amount}, OrderTotal: ${theOrder.total})`)
+            // 修正：直接使用 Payment 的金額作為請款金額，確保與訂單一致且避免 undefined
+            // Lornzo 邏輯核心：破壞並重建 Session，以寫入 data
+            const callbackAmount = thePayment.amount
+            console.log(action, `Payment SUCCESS. Using existing payment amount for capture: ${callbackAmount}`)
 
             const ecpayData = {
                 payment_source: "ecpay",
