@@ -107,13 +107,17 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse, next: Medu
         const paymentModuleService: any = req.scope.resolve(Modules.PAYMENT)
 
         if (data.RtnCode === "1") {
+            // 優先使用 TradeAmt (綠界標準欄位)，其次才是 amount (自定義欄位)，最後備份使用訂單金額
+            const callbackAmount = data.TradeAmt || data.amount || theOrder.total
+            console.log(action, `Payment SUCCESS. Using amount: ${callbackAmount} (TradeAmt: ${data.TradeAmt}, amount: ${data.amount}, OrderTotal: ${theOrder.total})`)
+
             const ecpayData = {
                 payment_source: "ecpay",
                 payment_type: data.PaymentType,
                 payment_code: data.RtnCode,
                 payment_msg: data.RtnMsg,
                 payment_status: "success",
-                payment_amount: data.amount,
+                payment_amount: callbackAmount,
                 merchant_trade_no: data.MerchantTradeNo,
                 trade_no: data.TradeNo,
                 credit_refund_id: data.gwsr,
@@ -146,17 +150,17 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse, next: Medu
                 }
             )
 
-            console.log(action, "create new payment session result:", createdPaymentSession)
+            console.log(action, "create new payment session result:", createdPaymentSession.id)
 
             // 藉由auth新的payment session來capture payment
             const createdPayment = await paymentModuleService.authorizePaymentSession(createdPaymentSession.id, {})
 
-            console.log(action, "authorizePaymentSession result:", createdPayment)
+            console.log(action, "authorizePaymentSession result payment ID:", createdPayment.id)
 
             await capturePaymentWorkflow(req.scope).run({
                 input: {
                     payment_id: createdPayment.id,
-                    amount: Number(data.amount)
+                    amount: Number(callbackAmount)
                 },
             })
 

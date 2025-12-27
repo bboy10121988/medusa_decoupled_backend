@@ -49,17 +49,21 @@ export default async function adminOrderNotificationHandler({
 
       console.log(`📧 發送新訂單通知給管理員: ${order.id}`)
 
-      // 計算訂單總金額
-      const totalAmount = order.total || 0
+      // 計算訂單總金額 (處理 Medusa V2 BigNumber)
+      const totalAmount = Number(order.total) || 0
       const currency = order.currency_code?.toUpperCase() || 'TWD'
 
-      // 格式化商品列表
-      const items = order.items?.filter(item => item !== null).map(item => ({
-        title: item.product?.title || item.title || '未知商品',
-        quantity: item.quantity || 0,
-        unit_price: item.unit_price || 0,
-        total: (item.unit_price || 0) * (item.quantity || 0)
-      })) || []
+      // 格式化商品列表 (處理 Medusa V2 BigNumber)
+      const items = order.items?.filter(item => item !== null).map(item => {
+        const unitPrice = Number(item.unit_price) || 0
+        const quantity = Number(item.quantity) || 0
+        return {
+          title: item.product?.title || item.title || '未知商品',
+          quantity: quantity,
+          unit_price: unitPrice,
+          total: unitPrice * quantity
+        }
+      }) || []
 
       // 優先使用 Resend 發送
       const resendApiKey = process.env.RESEND_API_KEY
