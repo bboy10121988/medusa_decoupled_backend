@@ -65,10 +65,21 @@ export default async function adminOrderNotificationHandler({
 
       const currency = order.currency_code?.toUpperCase() || 'TWD'
 
-      // 格式化商品列表 & 計算總額 (若 order.total 失效)
+      // 💰 金額正規化 helper: 針對 TWD 若金額 < 1 (顯示為小數) 則自動轉回整數 (x100)
+      const normalizeAmount = (amount: number) => {
+        const val = Number(amount) || 0
+        if (currency === 'TWD' && val > 0 && val < 1) {
+          console.log(`⚠️ 偵測到 TWD 金額過小 (${val})，自動修正為 ${val * 100}`)
+          return val * 100
+        }
+        return val
+      }
+
+      // 格式化商品列表 & 計算總額 (強制重新計算，不信任 order.total 或 item.total)
       let calculatedItemTotal = 0
       const items = order.items?.map((item: any) => {
-        const unitPrice = Number(item.unit_price) || 0
+        // 強制使用 unit_price 計算，並進行正規化校正
+        const unitPrice = normalizeAmount(item.unit_price)
         const quantity = Number(item.quantity) || 0
         const lineTotal = unitPrice * quantity
 
@@ -84,20 +95,14 @@ export default async function adminOrderNotificationHandler({
 
       // 計算運費總額
       const shippingTotal = order.shipping_methods?.reduce((acc: number, method: any) => {
-        return acc + (Number(method.amount) || Number(method.price) || 0)
+        const price = normalizeAmount(method.amount || method.price)
+        return acc + price
       }, 0) || 0
-      console.log(`🚚 計算運費總額: ${shippingTotal}`)
+      console.log(`🚚 計算運費總額 (Normalized): ${shippingTotal}`)
 
-      // 計算訂單總金額
-      // Medusa V2 可能回傳 String 類型的數字 (Main Unit)，不需要 / 100
-      let totalAmount = Number(order.total)
-
-      // Fallback: 若 order.total 為 undefined 或 0，改用計算值 (Items + Shipping)
-      if (!totalAmount) {
-        console.warn(`⚠️ Order.total 為 0 或無效，使用 Items + Shipping 計算`)
-        totalAmount = calculatedItemTotal + shippingTotal
-        console.log(`🔄 手動計算總額 (Items ${calculatedItemTotal} + Ship ${shippingTotal}): ${totalAmount}`)
-      }
+      // 計算訂單總金額 (完全放棄 order.total，全部手算)
+      let totalAmount = calculatedItemTotal + shippingTotal
+      console.log(`🔄 手動計算總額 (Items ${calculatedItemTotal} + Ship ${shippingTotal}): ${totalAmount}`)
 
       // 優先使用 Resend 發送
       const resendApiKey = process.env.RESEND_API_KEY
@@ -135,7 +140,7 @@ export default async function adminOrderNotificationHandler({
           subject: `[新訂單] #${order.display_id || order.id} - ${currency} ${totalAmount}`,
           html: htmlContent,
         })
-        // ... (略去部分未變更代碼) ...
+        console.log("✅ 管理員通知發送成功:", result)
       } else {
         // ... (略去 Local Notification 邏輯) ...
         // 註：這部分暫不修改，重點在 HTML Template
@@ -151,9 +156,9 @@ export const config: SubscriberConfig = {
 }
 
 function generateAdminNotificationTemplate(data: any): string {
-  // 注意：這裡移除了 / 100，假設數據已是 Main Unit
+  // 強制使用我們計算好的 total，不依賴 raw data 中的 item.total
   const itemsList = data.items?.map((item: any) =>
-    `<li>${item.title} x ${item.quantity} - $${Number(item.total || (item.unit_price * item.quantity)).toFixed(2)}</li>`
+    `<li>${item.title} x ${item.quantity} - $${Number(item.total).toFixed(0)}</li>`
   ).join('') || '<li>無商品資訊</li>'
 
   const address2Line = data.shipping_address?.address_2 ? `<p>${data.shipping_address.address_2}</p>` : ''
@@ -177,7 +182,7 @@ function generateAdminNotificationTemplate(data: any): string {
           <p><strong>訂單編號：</strong> ${data.order_id}</p>
           <p><strong>訂單日期：</strong> ${data.order_date}</p>
           <p><strong>客戶名稱：</strong> ${data.customer_name}</p>
-          <p><strong>訂單總額：</strong> ${data.currency} $${Number(data.total_amount).toFixed(2)}</p>
+          <p><strong>訂單總額：</strong> ${data.currency} $${Number(data.total_amount).toFixed(0)}</p>
         </div>
         
         <div style="margin: 20px 0;">
@@ -195,21 +200,9 @@ function generateAdminNotificationTemplate(data: any): string {
         </div>
         
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
         <p style="color: #999; font-size: 12px;">
           此為系統自動發送的內部通知，請勿回覆。
         </p>
-
-        <!-- DEBUG INFO START -->
-        <div style="margin-top: 30px; padding: 10px; background: #f5f5f5; border: 1px dashed #ccc; font-size: 10px; color: #666; font-family: monospace;">
-          <p><strong>Debugging Info:</strong></p>
-          <pre style="white-space: pre-wrap;">
-Items: ${JSON.stringify(data.items.map((i: any) => ({ t: i.title, unit_price: i.unit_price, qty: i.quantity, tot: i.total })), null, 2)}
-Shipping: ${JSON.stringify(data.shipping_methods || [], null, 2)}
-Total Raw: ${data.total_amount}
-          </pre>
-        </div>
-        <!-- DEBUG INFO END -->
       </body>
     </html>
   `
