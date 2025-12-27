@@ -75,24 +75,21 @@ export default async function adminOrderNotificationHandler({
         }
       }) || []
 
+      // 計算運費總額
+      const shippingTotal = order.shipping_methods?.reduce((acc: number, method: any) => {
+        return acc + (Number(method.amount) || Number(method.price) || 0)
+      }, 0) || 0
+      console.log(`🚚 計算運費總額: ${shippingTotal}`)
+
       // 計算訂單總金額
       // Medusa V2 可能回傳 String 類型的數字 (Main Unit)，不需要 / 100
       let totalAmount = Number(order.total)
 
-      // Fallback: 若 order.total 為 undefined 或 0，改用計算值
+      // Fallback: 若 order.total 為 undefined 或 0，改用計算值 (Items + Shipping)
       if (!totalAmount) {
-        // 嘗試使用 order 欄位 (若存在)
-        if (order.subtotal && order.shipping_total) {
-          totalAmount = (Number(order.subtotal) || 0) + (Number(order.shipping_total) || 0) + (Number(order.tax_total) || 0) - (Number(order.discount_total) || 0)
-        }
-
-        // 若仍為 0 (欄位可能是 undefined)，使用 items 累加 + shipping (若有)
-        if (!totalAmount) {
-          console.warn(`⚠️ Order.total 及 Subtotal 無效，使用 Items 累加計算`)
-          const shipping = Number(order.shipping_total) || 0
-          totalAmount = calculatedItemTotal + shipping
-        }
-        console.log(`🔄 最終使用總額: ${totalAmount}`)
+        console.warn(`⚠️ Order.total 為 0 或無效，使用 Items + Shipping 計算`)
+        totalAmount = calculatedItemTotal + shippingTotal
+        console.log(`🔄 手動計算總額 (Items ${calculatedItemTotal} + Ship ${shippingTotal}): ${totalAmount}`)
       }
 
       // 優先使用 Resend 發送
