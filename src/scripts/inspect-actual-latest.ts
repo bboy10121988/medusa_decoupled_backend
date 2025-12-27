@@ -11,7 +11,8 @@ async function inspectActualLatest({ container }: ExecArgs) {
             fields: [
                 "*",
                 "items.*",
-                "items.product.*"
+                "items.product.*",
+                "shipping_methods.*"
             ],
             options: {
                 take: 10,
@@ -43,6 +44,13 @@ async function inspectActualLatest({ container }: ExecArgs) {
             console.log(`  Unit Price: ${item.unit_price}`)
             console.log(`  Quantity: ${item.quantity}`)
             console.log(`  Row Total: ${item.total}`)
+        })
+
+        console.log("--- SHIPPING METHODS ---")
+        latestOrder.shipping_methods?.forEach((method: any, index: number) => {
+            console.log(`Method #${index + 1}: ${method.name}`)
+            console.log(`  Amount: ${method.amount}`)
+            console.log(`  Price: ${method.price}`)
         })
         console.log("-------------------------")
 
