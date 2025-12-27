@@ -35,7 +35,8 @@ export default async function adminOrderNotificationHandler({
           "items.*",
           "items.product.*",
           "shipping_address.*",
-          "billing_address.*"
+          "billing_address.*",
+          "shipping_methods.*"
         ],
         filters: {
           id: data.id,
@@ -145,7 +146,7 @@ export const config: SubscriberConfig = {
 function generateAdminNotificationTemplate(data: any): string {
   // 注意：這裡移除了 / 100，假設數據已是 Main Unit
   const itemsList = data.items?.map((item: any) =>
-    `<li>${item.title} x ${item.quantity} - $${Number(item.total).toFixed(2)}</li>`
+    `<li>${item.title} x ${item.quantity} - $${Number(item.total || (item.unit_price * item.quantity)).toFixed(2)}</li>`
   ).join('') || '<li>無商品資訊</li>'
 
   const address2Line = data.shipping_address?.address_2 ? `<p>${data.shipping_address.address_2}</p>` : ''
