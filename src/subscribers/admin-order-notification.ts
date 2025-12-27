@@ -65,21 +65,11 @@ export default async function adminOrderNotificationHandler({
 
       const currency = order.currency_code?.toUpperCase() || 'TWD'
 
-      // 💰 金額正規化 helper: 針對 TWD 若金額 < 1 (顯示為小數) 則自動轉回整數 (x100)
-      const normalizeAmount = (amount: number) => {
-        const val = Number(amount) || 0
-        if (currency === 'TWD' && val > 0 && val < 1) {
-          console.log(`⚠️ 偵測到 TWD 金額過小 (${val})，自動修正為 ${val * 100}`)
-          return val * 100
-        }
-        return val
-      }
-
-      // 格式化商品列表 & 計算總額 (強制重新計算，不信任 order.total 或 item.total)
+      // 格式化商品列表 & 計算總額 (強制使用 Unit Price 計算)
       let calculatedItemTotal = 0
       const items = order.items?.map((item: any) => {
-        // 強制使用 unit_price 計算，並進行正規化校正
-        const unitPrice = normalizeAmount(item.unit_price)
+        // 直接使用原始 unit_price，不進行額外修正 (相信 DB 數據正確)
+        const unitPrice = Number(item.unit_price) || 0
         const quantity = Number(item.quantity) || 0
         const lineTotal = unitPrice * quantity
 
@@ -95,14 +85,13 @@ export default async function adminOrderNotificationHandler({
 
       // 計算運費總額
       const shippingTotal = order.shipping_methods?.reduce((acc: number, method: any) => {
-        const price = normalizeAmount(method.amount || method.price)
-        return acc + price
+        return acc + (Number(method.amount) || Number(method.price) || 0)
       }, 0) || 0
-      console.log(`🚚 計算運費總額 (Normalized): ${shippingTotal}`)
+      console.log(`🚚 計算運費總額: ${shippingTotal}`)
 
-      // 計算訂單總金額 (完全放棄 order.total，全部手算)
+      // 計算訂單總金額
       let totalAmount = calculatedItemTotal + shippingTotal
-      console.log(`🔄 手動計算總額 (Items ${calculatedItemTotal} + Ship ${shippingTotal}): ${totalAmount}`)
+      console.log(`🔄 計算總額 (Items ${calculatedItemTotal} + Ship ${shippingTotal}): ${totalAmount}`)
 
       // 優先使用 Resend 發送
       const resendApiKey = process.env.RESEND_API_KEY
@@ -137,7 +126,7 @@ export default async function adminOrderNotificationHandler({
         const result = await resend.emails.send({
           from: fromEmail,
           to: adminEmails,
-          subject: `[新訂單] #${order.display_id || order.id} - ${currency} ${totalAmount}`,
+          subject: `[新訂單(Fixed)] #${order.display_id || order.id} - ${currency} ${totalAmount}`,
           html: htmlContent,
         })
         console.log("✅ 管理員通知發送成功:", result)
