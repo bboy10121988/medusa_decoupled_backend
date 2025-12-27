@@ -20,8 +20,9 @@ export default async function adminOrderNotificationHandler({
     const query = container.resolve("query")
 
     try {
-      // ⏳ 延遲 3.5 秒以確保所有關聯資料 (如 Shipping Methods) 都已完整寫入資料庫
-      await new Promise(resolve => setTimeout(resolve, 3500))
+      // ⏳ 延遲 5 秒以確保所有關聯資料 (如 Shipping Methods) 都已完整寫入資料庫
+      console.log(`⏳ 等待 5 秒讓 DB 完成寫入...`)
+      await new Promise(resolve => setTimeout(resolve, 5000))
 
       // 查詢訂單詳細資訊
       const { data: [order] } = await query.graph({
@@ -59,6 +60,8 @@ export default async function adminOrderNotificationHandler({
 
       console.log(`📧 發送新訂單通知給管理員: ${order.id}`)
       console.log(`💰 原始金額資料 (Raw): Total=${order.total}, Sub=${order.subtotal}`)
+      console.log(`📦 商品資料 (Raw):`, JSON.stringify(order.items?.map((i: any) => ({ t: i.title, p: i.unit_price, q: i.quantity, tot: i.total })), null, 2))
+      console.log(`🚚 運費資料 (Raw):`, JSON.stringify(order.shipping_methods, null, 2))
 
       const currency = order.currency_code?.toUpperCase() || 'TWD'
 
