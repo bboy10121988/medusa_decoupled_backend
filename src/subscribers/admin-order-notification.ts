@@ -25,6 +25,11 @@ export default async function adminOrderNotificationHandler({
         entity: "order",
         fields: [
           "*",
+          "total",
+          "subtotal",
+          "tax_total",
+          "discount_total",
+          "shipping_total",
           "customer.*",
           "items.*",
           "items.product.*",
@@ -48,9 +53,22 @@ export default async function adminOrderNotificationHandler({
       ]
 
       console.log(`📧 發送新訂單通知給管理員: ${order.id}`)
+      console.log(`💰 原始金額資料: Total=${order.total}, Sub=${order.subtotal}, Ship=${order.shipping_total}`)
 
       // 計算訂單總金額 (處理 Medusa V2 BigNumber)
-      const totalAmount = Number(order.total) || 0
+      let totalAmount = Number(order.total)
+
+      // 若 total 為 0 或失效，嘗試手動計算
+      if (!totalAmount) {
+        console.warn(`⚠️ Order.total 為 0 或無效，嘗試使用子項目計算`)
+        const subtotal = Number(order.subtotal) || 0
+        const shipping = Number(order.shipping_total) || 0
+        const tax = Number(order.tax_total) || 0
+        const discount = Number(order.discount_total) || 0
+        totalAmount = subtotal + shipping + tax - discount
+        console.log(`🔄 手動計算總額: ${totalAmount}`)
+      }
+
       const currency = order.currency_code?.toUpperCase() || 'TWD'
 
       // 格式化商品列表 (處理 Medusa V2 BigNumber)
