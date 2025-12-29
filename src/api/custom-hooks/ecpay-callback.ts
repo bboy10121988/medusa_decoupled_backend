@@ -181,7 +181,7 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse, next: Medu
 
     } catch (error: any) {
         console.error(action, "Error processing ECPay callback:", error)
-        res.status(400).send("0|Error: " + error.message)
+        res.status(400).send("0|Error")
         return
     }
 

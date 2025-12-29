@@ -1,8 +1,8 @@
-```javascript
 module.exports = {
   apps: [{
     name: 'medusa-backend',
-    script: 'npm run start',
+    script: 'npm',
+    args: 'run start',
     cwd: '/home/raychou/projects/backend',
     env: {
       NODE_ENV: 'production',
@@ -21,5 +21,15 @@ module.exports = {
     out_file: '/home/raychou/.pm2/logs/medusa-backend-out.log',
     log_file: '/home/raychou/.pm2/logs/medusa-backend-combined.log',
     time: true
+  },
+  {
+    name: 'medusa-frontend',
+    cwd: '/home/raychou/projects/frontend',
+    script: 'npm',
+    args: 'run start',
+    env: {
+      NODE_ENV: 'production',
+      PORT: '8000'
+    }
   }]
-}
+};
