@@ -128,6 +128,42 @@ class AffiliateService extends MedusaService({
     return conversion
   }
 
+  async settleAffiliate(affiliateId: string) {
+    console.log(`[AffiliateService] Settling balance for affiliate: ${affiliateId}`)
+
+    const affiliate = await this.retrieveAffiliate(affiliateId)
+    if (!affiliate) {
+      throw new Error("Affiliate not found")
+    }
+
+    const balance = Number(affiliate.balance || 0)
+    if (balance <= 0) {
+      throw new Error("Affiliate has no balance to settle")
+    }
+
+    // 1. Create Settlement Record
+    const settlement = await this.createAffiliateSettlements({
+      affiliate_id: affiliate.id,
+      amount: balance,
+      currency_code: 'USD', // Default or from settings? Assuming USD for now or derive from region
+      status: 'paid',
+      period_end: new Date(),
+      metadata: {
+        settled_at: new Date().toISOString(),
+        settled_by: 'admin_action'
+      }
+    })
+
+    // 2. Reset Affiliate Balance
+    await this.updateAffiliates({
+      id: affiliate.id,
+      balance: 0
+    })
+
+    console.log(`[AffiliateService] Settled ${balance} for affiliate ${affiliate.id}`)
+    return settlement
+  }
+
   async cancelConversion(orderId: string, reason: string = "order_canceled") {
     console.log(`[AffiliateService] Canceling conversion for order: ${orderId}, Reason: ${reason}`)
 
