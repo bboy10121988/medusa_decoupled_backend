@@ -58,104 +58,114 @@ export default defineConfig({
             resolve: '@medusajs/auth-emailpass',
             id: 'emailpass',
           },
-          // Google OAuth Provider
+          // Google Oauth ProviderV2
           {
-            resolve: '@medusajs/auth-google',
-            id: 'google',
+            resolve: "@medusajs/medusa/auth-google",
+            id: "google",
             options: {
-              clientId: process.env.GOOGLE_CLIENT_ID || '',
-              clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-              callbackUrl: (() => {
-                const url = process.env.GOOGLE_CALLBACK_URL || 'https://admin.timsfantasyworld.com/auth/customer/google/callback'
-                return url
-              })(),
-              // ✅ Medusa v2 verify callback
-              verify: async (container, req, accessToken, refreshToken, profile, done) => {
-                // 強制寫入 /tmp 下唯一的 debug log
-                const fs = require('fs');
-                function log(message) {
-                  try {
-                    const time = new Date().toISOString();
-                    fs.appendFileSync('/tmp/medusa-auth-debug.log', `[${time}] ${message}\n`);
-                  } catch (err) {
-                    console.error("Failed to write log:", err);
-                  }
-                }
-
-                log("🚀 Google Verify Callback STARTED 🚀");
-                try {
-                  log("Container available: " + (!!container));
-                  log("Profile ID: " + (profile?.id || 'unknown'));
-                } catch (e) {
-                  log("Error in initial logging: " + e.message);
-                }
-
-                // --- 原本的邏輯 ---
-
-                // 處理 profile 結構可能不同的情況
-                const json = profile._json || profile;
-                const email = json.email;
-                const given_name = json.given_name;
-                const family_name = json.family_name;
-                const picture = json.picture;
-                const googleUserId = json.sub || json.id;
-
-                if (!email) {
-                  log("❌ Google profile missing email")
-                  return done(null, false, { message: 'Google profile did not return an email.' })
-                }
-
-                try {
-                  // 使用 Medusa v2 的 query API 檢查用戶是否存在
-                  const query = container.resolve("query")
-                  const { data: customers } = await query.graph({
-                    entity: "customer",
-                    fields: ["id", "email", "first_name", "last_name", "has_account"],
-                    filters: { email },
-                  })
-
-                  if (customers && customers.length > 0) {
-                    log(`✅ Google Auth: Customer ${email} already exists. Logging in.`)
-                    return done(null, customers[0])
-                  }
-
-                  // 使用 Medusa v2 的 workflow 創建新用戶
-                  log(`➕ Google Auth: Creating new customer for ${email}...`)
-
-                  const { createCustomersWorkflow } = require('@medusajs/core-flows');
-                  // 注意: createCustomersWorkflow 需要傳入 container 或 invoke
-                  // 這裡嘗試直接傳入 container
-
-                  log("Running createCustomersWorkflow...")
-                  const { result } = await createCustomersWorkflow(container).run({
-                    input: {
-                      customersData: [{
-                        email,
-                        first_name: given_name || '',
-                        last_name: family_name || '',
-                        has_account: true,
-                        metadata: {
-                          auth_provider: 'google',
-                          google_user_id: googleUserId,
-                          picture,
-                        }
-                      }]
-                    }
-                  })
-
-                  const newCustomer = result[0]
-                  log(`✅ Google Auth: New customer created: ${newCustomer.id}`)
-
-                  return done(null, newCustomer)
-
-                } catch (error) {
-                  log("❌ Google Auth: Error in verify callback: " + error.message)
-                  log("Stack: " + error.stack)
-                  return done(error, false)
-                }
-              }
+              clientId: process.env.GOOGLE_CLIENT_ID,
+              clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+              callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'https://admin.timsfantasyworld.com/auth/customer/google/callback',
             },
           },
+          // // Google OAuth Provider
+          // {
+          //   resolve: '@medusajs/auth-google',
+          //   id: 'google',
+          //   options: {
+          //     clientId: process.env.GOOGLE_CLIENT_ID || '',
+          //     clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+          //     callbackUrl: (() => {
+          //       const url = process.env.GOOGLE_CALLBACK_URL || 'https://admin.timsfantasyworld.com/auth/customer/google/callback'
+          //       return url
+          //     })(),
+          //     // ✅ Medusa v2 verify callback
+          //     verify: async (container, req, accessToken, refreshToken, profile, done) => {
+          //       // 強制寫入 /tmp 下唯一的 debug log
+          //       const fs = require('fs');
+          //       function log(message) {
+          //         try {
+          //           const time = new Date().toISOString();
+          //           fs.appendFileSync('/tmp/medusa-auth-debug.log', `[${time}] ${message}\n`);
+          //         } catch (err) {
+          //           console.error("Failed to write log:", err);
+          //         }
+          //       }
+
+          //       log("🚀 Google Verify Callback STARTED 🚀");
+          //       try {
+          //         log("Container available: " + (!!container));
+          //         log("Profile ID: " + (profile?.id || 'unknown'));
+          //       } catch (e) {
+          //         log("Error in initial logging: " + e.message);
+          //       }
+
+          //       // --- 原本的邏輯 ---
+
+          //       // 處理 profile 結構可能不同的情況
+          //       const json = profile._json || profile;
+          //       const email = json.email;
+          //       const given_name = json.given_name;
+          //       const family_name = json.family_name;
+          //       const picture = json.picture;
+          //       const googleUserId = json.sub || json.id;
+
+          //       if (!email) {
+          //         log("❌ Google profile missing email")
+          //         return done(null, false, { message: 'Google profile did not return an email.' })
+          //       }
+
+          //       try {
+          //         // 使用 Medusa v2 的 query API 檢查用戶是否存在
+          //         const query = container.resolve("query")
+          //         const { data: customers } = await query.graph({
+          //           entity: "customer",
+          //           fields: ["id", "email", "first_name", "last_name", "has_account"],
+          //           filters: { email },
+          //         })
+
+          //         if (customers && customers.length > 0) {
+          //           log(`✅ Google Auth: Customer ${email} already exists. Logging in.`)
+          //           return done(null, customers[0])
+          //         }
+
+          //         // 使用 Medusa v2 的 workflow 創建新用戶
+          //         log(`➕ Google Auth: Creating new customer for ${email}...`)
+
+          //         const { createCustomersWorkflow } = require('@medusajs/core-flows');
+          //         // 注意: createCustomersWorkflow 需要傳入 container 或 invoke
+          //         // 這裡嘗試直接傳入 container
+
+          //         log("Running createCustomersWorkflow...")
+          //         const { result } = await createCustomersWorkflow(container).run({
+          //           input: {
+          //             customersData: [{
+          //               email,
+          //               first_name: given_name || '',
+          //               last_name: family_name || '',
+          //               has_account: true,
+          //               metadata: {
+          //                 auth_provider: 'google',
+          //                 google_user_id: googleUserId,
+          //                 picture,
+          //               }
+          //             }]
+          //           }
+          //         })
+
+          //         const newCustomer = result[0]
+          //         log(`✅ Google Auth: New customer created: ${newCustomer.id}`)
+
+          //         return done(null, newCustomer)
+
+          //       } catch (error) {
+          //         log("❌ Google Auth: Error in verify callback: " + error.message)
+          //         log("Stack: " + error.stack)
+          //         return done(error, false)
+          //       }
+          //     }
+          //   },
+          // },
         ],
       },
     },
