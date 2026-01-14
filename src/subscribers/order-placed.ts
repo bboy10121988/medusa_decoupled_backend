@@ -145,6 +145,23 @@ function generateOrderConfirmationTemplate(data: any): string {
     </div>
   ` : ''
 
+  // 銀行轉帳匯款資訊區塊
+  const bankTransferSection = `
+    <div style="background-color: #fff3cd; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #ffc107;">
+      <h3 style="margin: 0 0 15px 0; color: #856404;">🏦 銀行轉帳付款資訊</h3>
+      <p style="margin: 0 0 5px 0; color: #856404;">如您選擇銀行轉帳付款，請依以下帳號進行匯款：</p>
+      <div style="background-color: #ffffff; padding: 15px; border-radius: 6px; margin-top: 10px;">
+        <p style="margin: 5px 0;"><strong>銀行：</strong>國泰世華銀行 福和分行 (813)</p>
+        <p style="margin: 5px 0;"><strong>帳號：</strong>216-087-069-471</p>
+        <p style="margin: 5px 0;"><strong>戶名：</strong>提姆的髮藝沙龍</p>
+      </div>
+      <p style="margin: 15px 0 0 0; color: #856404; font-size: 13px;">
+        ⚠️ 請於 3 個工作日內完成轉帳，並保留轉帳證明。<br/>
+        轉帳完成後請聯繫客服確認，確認收款後將安排出貨。
+      </p>
+    </div>
+  `
+
   return `
     <html>
       <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -166,7 +183,9 @@ function generateOrderConfirmationTemplate(data: any): string {
         
         ${shippingSection}
         
-        <div style="text-align: center; margin: 30px 0;">誤
+        ${bankTransferSection}
+        
+        <div style="text-align: center; margin: 30px 0;">
           <a href="${data.order_url}" 
              style="background-color: #007cba; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
             查看訂單詳情

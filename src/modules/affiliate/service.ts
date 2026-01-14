@@ -164,6 +164,40 @@ class AffiliateService extends MedusaService({
     return settlement
   }
 
+  async captureConversion(orderId: string) {
+    console.log(`[AffiliateService] Capturing conversion for order: ${orderId}`)
+
+    // 1. Find pending conversions for this order
+    const conversions = await this.listAffiliateConversions(
+      { order_id: orderId, status: "pending" }
+    )
+
+    if (!conversions.length) {
+      console.log(`[AffiliateService] No pending conversions found for order ${orderId} to capture`)
+      return
+    }
+
+    for (const conversion of conversions) {
+      // 2. Mark conversion as captured
+      await this.updateAffiliateConversions({
+        id: conversion.id,
+        status: "captured", // or 'confirmed' depending on logic. 'captured' matches payment status.
+        metadata: {
+          ...conversion.metadata as any,
+          captured_at: new Date().toISOString()
+        }
+      })
+
+      console.log(`[AffiliateService] Captured conversion ${conversion.id} for order ${orderId}`)
+
+      // Note: We already added to 'balance' / 'total_earnings' as pending in registerConversion.
+      // If we separate pending/captured balance in DB, we would move funds here.
+      // For now, the frontend purely filters by conversion status ('pending' vs 'captured'), 
+      // so enabling the status change from 'pending' to 'captured' is sufficient to move the money 
+      // from "待確認" (Pending) to "可結算" (Captured/Confirmed) columns.
+    }
+  }
+
   async cancelConversion(orderId: string, reason: string = "order_canceled") {
     console.log(`[AffiliateService] Canceling conversion for order: ${orderId}, Reason: ${reason}`)
 
