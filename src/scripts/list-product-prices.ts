@@ -29,7 +29,7 @@ export default async function listProductPrices({ container }: ExecArgs) {
             // 獲取價格
             try {
                 const priceSet = await pricingService.listPriceSets({
-                    id: variant.id
+                    id: [variant.id]
                 });
 
                 if (priceSet && priceSet.length > 0) {
