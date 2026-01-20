@@ -18,7 +18,9 @@ export default async function setupJapan({ container }: ExecArgs) {
 
     // 1. Update Store to support JPY
     const [store] = await storeModuleService.listStores();
-    const currentCurrencies = store.supported_currencies?.map(c => ({
+    logger.info(`Current store currencies: ${JSON.stringify(store.supported_currencies)}`);
+
+    let currentCurrencies = store.supported_currencies?.map(c => ({
         currency_code: c.currency_code,
         is_default: c.is_default
     })) || [];
@@ -27,6 +29,14 @@ export default async function setupJapan({ container }: ExecArgs) {
 
     if (!hasJpy) {
         logger.info("Adding JPY to store supported currencies...");
+
+        // Safety: Ensure at least one is default
+        if (!currentCurrencies.some(c => c.is_default)) {
+            logger.warn("No default currency found in existing list. Setting first one (or TWD/USD) as default.");
+            const defaultC = currentCurrencies.find(c => c.currency_code === 'twd') || currentCurrencies.find(c => c.currency_code === 'usd') || currentCurrencies[0];
+            if (defaultC) defaultC.is_default = true;
+        }
+
         try {
             await updateStoresWorkflow(container).run({
                 input: {
@@ -34,7 +44,7 @@ export default async function setupJapan({ container }: ExecArgs) {
                     update: {
                         supported_currencies: [
                             ...currentCurrencies,
-                            { currency_code: "jpy" }
+                            { currency_code: "jpy", is_default: false }
                         ],
                     },
                 },
