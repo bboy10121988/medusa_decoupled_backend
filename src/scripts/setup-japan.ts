@@ -20,9 +20,7 @@ export default async function setupJapan({ container }: ExecArgs) {
     const [store] = await storeModuleService.listStores();
     const currentCurrencies = store.supported_currencies?.map(c => ({
         currency_code: c.currency_code,
-        is_default: c.is_default,
-        is_tax_inclusive: c.is_tax_inclusive,
-        prices_include_tax: c.is_tax_inclusive
+        is_default: c.is_default
     })) || [];
 
     const hasJpy = currentCurrencies.some(c => c.currency_code === 'jpy');
@@ -51,16 +49,17 @@ export default async function setupJapan({ container }: ExecArgs) {
 
     // 2. Handle Regions
     // Find region containing 'jp'
-    const regions = await regionService.listRegions({
-        countries: { iso_2: "jp" },
-    }, {
+    const regions = await regionService.listRegions({}, {
         relations: ["countries"]
     });
 
-    if (regions.length) {
-        logger.info(`Found existing region(s) containing Japan: ${regions.map(r => r.name).join(', ')}`);
+    // Filter in memory for regions containing JP
+    const regionsWithJp = regions.filter(r => r.countries?.some(c => c.iso_2 === 'jp'));
 
-        for (const region of regions) {
+    if (regionsWithJp.length) {
+        logger.info(`Found existing region(s) containing Japan: ${regionsWithJp.map(r => r.name).join(', ')}`);
+
+        for (const region of regionsWithJp) {
             if (region.currency_code === 'jpy') {
                 logger.info(`Region '${region.name}' already uses JPY. Skipping region creation.`);
                 // Assuming if it exists and uses JPY, we are good.
