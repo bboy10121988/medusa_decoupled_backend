@@ -54,6 +54,7 @@ export default async function productCreateHandler({
             _type: 'product',
             language: 'zh-TW',
             title: product.title,
+            subtitle: product.subtitle,
             description: product.description,
             // Assuming handle is unique enough or we might want to map slug? 
             slug: { current: product.handle },
