@@ -45,7 +45,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         // 使用 Medusa Promotion Module 建立折扣碼
         const promotionModuleService = req.scope.resolve(Modules.PROMOTION);
 
-        const promotion = await promotionModuleService.createPromotions({
+        const [promotion] = await promotionModuleService.createPromotions({
             code: code.toUpperCase(),
             type: "standard",
             status: "active",
