@@ -128,6 +128,69 @@ class AffiliateService extends MedusaService({
     return conversion
   }
 
+  /**
+   * 從 Promotion 註冊轉換 (折扣碼分潤)
+   */
+  async registerConversionFromPromotion(data: {
+    order_id: string;
+    order_subtotal: number;      // 折扣後小計
+    shipping_total: number;      // 運費
+    promo_code: string;          // 使用的折扣碼
+    affiliate_id: string;        // 聯盟會員 ID
+    commission_rate: number;     // 佣金比例 (從 promotion.metadata 取得)
+    metadata?: Record<string, any>;
+  }) {
+    const { order_id, order_subtotal, shipping_total, promo_code, affiliate_id, commission_rate, metadata } = data;
+
+    // 1. 查找聯盟會員
+    const affiliate = await this.retrieveAffiliate(affiliate_id);
+    if (!affiliate || affiliate.status !== "active") {
+      console.log(`[Affiliate] Affiliate ${affiliate_id} not active, skipping conversion`);
+      return null;
+    }
+
+    // 2. 計算佣金基準 = 折扣後小計 - 運費
+    const commissionBase = order_subtotal - shipping_total;
+    if (commissionBase <= 0) {
+      console.log(`[Affiliate] Commission base is ${commissionBase}, skipping`);
+      return null;
+    }
+
+    // 3. 計算佣金
+    const commission = Math.floor(commissionBase * commission_rate);
+
+    // 4. 建立轉換記錄
+    const conversion = await this.createAffiliateConversions({
+      affiliate_id,
+      link_id: null,  // 折扣碼來源沒有 link
+      order_id,
+      amount: commissionBase,
+      commission,
+      status: "pending",
+      source_type: "promo_code",
+      promo_code,
+      metadata: {
+        ...metadata,
+        commission_rate,
+        order_subtotal,
+        shipping_total,
+      },
+    });
+
+    // 5. 更新聯盟會員餘額
+    const currentTotal = Number(affiliate.total_earnings || 0);
+    const currentBalance = Number(affiliate.balance || 0);
+
+    await this.updateAffiliates({
+      id: affiliate_id,
+      balance: currentBalance + commission,
+      total_earnings: currentTotal + commission,
+    });
+
+    console.log(`[Affiliate] Registered promo code conversion: ${promo_code}, commission: ${commission}`);
+    return conversion;
+  }
+
   async settleAffiliate(affiliateId: string) {
     console.log(`[AffiliateService] Settling balance for affiliate: ${affiliateId}`)
 
