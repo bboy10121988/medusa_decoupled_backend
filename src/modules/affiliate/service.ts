@@ -162,7 +162,7 @@ class AffiliateService extends MedusaService({
     // 4. 建立轉換記錄
     const conversion = await this.createAffiliateConversions({
       affiliate_id,
-      link_id: null,  // 折扣碼來源沒有 link
+      // link_id: undefined,  // 折扣碼來源沒有 link，省略此欄位
       order_id,
       amount: commissionBase,
       commission,
