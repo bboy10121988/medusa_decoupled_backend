@@ -29,8 +29,10 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         const discountValue = body?.discount_value || 10
         const commissionRate = body?.commission_rate || 0.1
 
-        // Get all active affiliates
-        const affiliates = await affiliateService.listAffiliates({ status: 'active' })
+        // Get all active/approved affiliates
+        const activeAffiliates = await affiliateService.listAffiliates({ status: 'active' })
+        const approvedAffiliates = await affiliateService.listAffiliates({ status: 'approved' })
+        const affiliates = [...activeAffiliates, ...approvedAffiliates]
 
         // Get all existing promotions
         const [existingPromos] = await promotionModuleService.listAndCountPromotions(
