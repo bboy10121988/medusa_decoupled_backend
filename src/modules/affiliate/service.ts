@@ -72,8 +72,8 @@ class AffiliateService extends MedusaService({
       return null
     }
 
-    if (affiliate.status !== 'active' && affiliate.status !== 'approved') {
-      console.warn(`[AffiliateService] Affiliate ${affiliate.id} is not active/approved. Status: ${affiliate.status}`)
+    if (affiliate.status !== 'active') {
+      console.warn(`[AffiliateService] Affiliate ${affiliate.id} is not active. Status: ${affiliate.status}`)
       return null
     }
 
@@ -144,8 +144,8 @@ class AffiliateService extends MedusaService({
 
     // 1. 查找聯盟會員
     const affiliate = await this.retrieveAffiliate(affiliate_id);
-    if (!affiliate || (affiliate.status !== "active" && affiliate.status !== "approved")) {
-      console.log(`[Affiliate] Affiliate ${affiliate_id} not active/approved (status: ${affiliate?.status}), skipping conversion`);
+    if (!affiliate || affiliate.status !== "active") {
+      console.log(`[Affiliate] Affiliate ${affiliate_id} not active (status: ${affiliate?.status}), skipping conversion`);
       return null;
     }
 
