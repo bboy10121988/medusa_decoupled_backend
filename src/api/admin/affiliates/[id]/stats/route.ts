@@ -8,23 +8,35 @@ export async function GET(
 ) {
   const affiliateService: AffiliateService = req.scope.resolve(AFFILIATE_MODULE)
   const { id } = req.params
-  const days = parseInt(req.query.days as string || '30', 10)
-  
-  // Calculate date range
-  const endDate = new Date()
-  const startDate = new Date()
-  startDate.setDate(startDate.getDate() - days)
+  const { from, to } = req.query
+
+  let startDate: Date
+  let endDate: Date
+  let days: number
+
+  if (from || to) {
+    startDate = from ? new Date(from as string) : new Date(0)
+    endDate = to ? new Date(to as string) : new Date()
+    // Calculate days for trend generation
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime())
+    days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
+  } else {
+    days = parseInt(req.query.days as string || '30', 10)
+    endDate = new Date()
+    startDate = new Date()
+    startDate.setDate(startDate.getDate() - days)
+  }
 
   const [clicks, conversions] = await Promise.all([
     affiliateService.listAffiliateClicks({
       affiliate_id: id,
-      created_at: { $gte: startDate }
+      created_at: { $gte: startDate, $lte: endDate }
     }, {
       relations: ['link']
     }),
     affiliateService.listAffiliateConversions({
       affiliate_id: id,
-      created_at: { $gte: startDate }
+      created_at: { $gte: startDate, $lte: endDate }
     }, {
       relations: ['link']
     })
@@ -67,10 +79,10 @@ export async function GET(
     const d = new Date(startDate)
     d.setDate(d.getDate() + i)
     const dateStr = d.toISOString().split('T')[0]
-    
+
     const dayClicks = clicks.filter(c => c.created_at.toISOString().startsWith(dateStr)).length
     const dayConversions = conversions.filter(c => c.created_at.toISOString().startsWith(dateStr))
-    
+
     trend.push({
       date: dateStr,
       clicks: dayClicks,
@@ -81,7 +93,7 @@ export async function GET(
   }
 
   res.json({
-    period: `Last ${days} days`,
+    period: from || to ? `${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}` : `Last ${days} days`,
     totalClicks,
     totalConversions,
     totalRevenue,

@@ -1,4 +1,5 @@
 import { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { Modules } from "@medusajs/framework/utils"
 import { AFFILIATE_MODULE } from "../../../../../modules/affiliate"
 import AffiliateService from "../../../../../modules/affiliate/service"
 import { getAffiliateFromRequest } from "../../../../../utils/affiliate-auth"
@@ -57,6 +58,10 @@ export async function POST(
         // Extract only allowed fields to update
         const { status, commission_rate } = req.body as { status?: string, commission_rate?: number }
 
+        // Get current affiliate to check status change
+        const targetAffiliate = await affiliateService.retrieveAffiliate(id)
+        const oldStatus = targetAffiliate.status
+
         const updateData: any = { id }
         if (status) updateData.status = status
         if (commission_rate !== undefined) updateData.commission_rate = commission_rate
@@ -65,6 +70,63 @@ export async function POST(
         await affiliateService.updateAffiliates([updateData])
 
         const updated = await affiliateService.retrieveAffiliate(id)
+
+        // Auto-create welcome promo code when status changes to 'active'
+        if (oldStatus !== 'active' && status === 'active') {
+            try {
+                const promotionModuleService = req.scope.resolve(Modules.PROMOTION)
+
+                // Check if welcome promo code already exists
+                const [existingPromos] = await promotionModuleService.listAndCountPromotions(
+                    {},
+                    { take: 1000 }
+                )
+
+                const hasWelcomeCode = existingPromos.some(
+                    (p: any) => p.metadata?.affiliate_id === id && p.metadata?.is_welcome_code === true
+                )
+
+                if (!hasWelcomeCode) {
+                    // Generate welcome promo code
+                    const welcomeCode = `${targetAffiliate.code}_WELCOME`.toUpperCase()
+
+                    await promotionModuleService.createPromotions({
+                        code: welcomeCode,
+                        type: "standard",
+                        status: "active",
+                        is_automatic: false,
+                        application_method: {
+                            type: "percentage",
+                            target_type: "order",
+                            value: 10, // 10% discount for customers
+                            allocation: "across",
+                        },
+                        metadata: {
+                            affiliate_id: id,
+                            affiliate_code: targetAffiliate.code,
+                            affiliate_email: targetAffiliate.email,
+                            commission_rate: 0.1, // 10% commission for affiliate
+                            source: "affiliate_system",
+                            is_welcome_code: true,
+                            created_at: new Date().toISOString(),
+                        },
+                        campaign: {
+                            name: `Affiliate Welcome - ${welcomeCode}`,
+                            campaign_identifier: `AFF-WELCOME-${welcomeCode}`,
+                            budget: {
+                                type: "usage",
+                                limit: 100000
+                            }
+                        }
+                    })
+
+                    console.log(`[Affiliate] Auto-created welcome promo code: ${welcomeCode} for affiliate ${id}`)
+                }
+            } catch (promoError) {
+                console.error('[Affiliate] Failed to create welcome promo code:', promoError)
+                // Don't fail the request if promo code creation fails
+            }
+        }
 
         res.json({ affiliate: updated })
 

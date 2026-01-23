@@ -1,12 +1,13 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
-import { Container, Heading, Table, StatusBadge, Button } from "@medusajs/ui"
-import { useAdminCustomQuery } from "medusa-react" // Or use fetch if hooks not available
+import { Container, Heading, Table, StatusBadge, Button, Text as MedusaText } from "@medusajs/ui"
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 
 const AffiliateList = () => {
   const [affiliates, setAffiliates] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
 
   useEffect(() => {
     // Fetch affiliates from our custom admin endpoint
@@ -14,11 +15,15 @@ const AffiliateList = () => {
     // But for simplicity in this custom route, I'll use fetch with credentials if needed, 
     // or better, assume the admin client is available.
     // Actually, in Medusa v2 Admin, we should use the SDK or fetch.
-    
+
     const fetchAffiliates = async () => {
+      setIsLoading(true);
       try {
-        // We need to use the backend URL. In admin dev, it might be proxied.
-        const res = await fetch("/admin/affiliates")
+        let url = "/admin/affiliates?"
+        if (startDate) url += `from=${startDate}&`
+        if (endDate) url += `to=${endDate}&`
+
+        const res = await fetch(url)
         const data = await res.json()
         setAffiliates(data.affiliates || [])
       } catch (e) {
@@ -29,7 +34,7 @@ const AffiliateList = () => {
     }
 
     fetchAffiliates()
-  }, [])
+  }, [startDate, endDate])
 
   const handleStatusUpdate = async (id: string, status: 'approved' | 'rejected') => {
     try {
@@ -40,9 +45,9 @@ const AffiliateList = () => {
         },
         body: JSON.stringify({ status })
       })
-      
+
       if (res.ok) {
-        setAffiliates(prev => prev.map(a => 
+        setAffiliates(prev => prev.map(a =>
           a.id === id ? { ...a, status } : a
         ))
       }
@@ -55,9 +60,30 @@ const AffiliateList = () => {
     <Container>
       <div className="flex items-center justify-between mb-6">
         <Heading level="h1">Affiliates</Heading>
+        <div className="flex gap-x-2">
+          <div className="flex items-center gap-x-2">
+            <MedusaText size="small" className="text-ui-fg-subtle">From:</MedusaText>
+            <input
+              type="date"
+              className="border rounded px-2 py-1 text-small"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-x-2">
+            <MedusaText size="small" className="text-ui-fg-subtle">To:</MedusaText>
+            <input
+              type="date"
+              className="border rounded px-2 py-1 text-small"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+          <Button onClick={() => { setStartDate(""); setEndDate(""); }}>Clear</Button>
+        </div>
         <Button>Create Affiliate</Button>
       </div>
-      
+
       <Table>
         <Table.Header>
           <Table.Row>
@@ -77,8 +103,8 @@ const AffiliateList = () => {
               <Table.Cell>{affiliate.code}</Table.Cell>
               <Table.Cell>
                 <StatusBadge color={
-                  affiliate.status === 'approved' || affiliate.status === 'active' ? 'green' : 
-                  affiliate.status === 'pending' ? 'orange' : 'red'
+                  affiliate.status === 'approved' || affiliate.status === 'active' ? 'green' :
+                    affiliate.status === 'pending' ? 'orange' : 'red'
                 }>
                   {affiliate.status}
                 </StatusBadge>
@@ -91,15 +117,15 @@ const AffiliateList = () => {
                   </Link>
                   {affiliate.status === 'pending' && (
                     <>
-                      <Button 
-                        variant="secondary" 
+                      <Button
+                        variant="secondary"
                         size="small"
                         onClick={() => handleStatusUpdate(affiliate.id, 'approved')}
                       >
                         Approve
                       </Button>
-                      <Button 
-                        variant="secondary" 
+                      <Button
+                        variant="secondary"
                         size="small"
                         onClick={() => handleStatusUpdate(affiliate.id, 'rejected')}
                       >
