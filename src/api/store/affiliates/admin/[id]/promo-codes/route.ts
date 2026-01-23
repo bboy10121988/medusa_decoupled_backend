@@ -116,7 +116,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         }
 
         const promoCode = body.code.toUpperCase()
-        const [promotion] = await promotionModuleService.createPromotions({
+        const promotion = await promotionModuleService.createPromotions({
             code: promoCode,
             type: "standard",
             status: "active",
