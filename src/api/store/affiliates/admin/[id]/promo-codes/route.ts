@@ -35,7 +35,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
         const [promotions] = await promotionModuleService.listAndCountPromotions(
             {},
             {
-                relations: ["application_method"],
+                relations: ["application_method", "campaign"],
                 take: 1000
             }
         )
@@ -71,6 +71,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
                     conversions_count: conversions.length,
                     total_earnings: totalEarnings,
                     created_at: p.created_at,
+                    ends_at: p.campaign?.ends_at || null,
                 }
             })
         )
@@ -141,7 +142,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
                 budget: {
                     type: "usage",
                     limit: body.limit || 100000
-                }
+                },
+                ...(body.ends_at && { ends_at: new Date(body.ends_at) }),
             }
         })
 
@@ -154,6 +156,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
                 discount_value: body.discount_value || 10,
                 commission_rate: Number(body.commission_rate) || 0.1,
                 status: promotion.status,
+                ends_at: body.ends_at || null,
             },
         })
     } catch (error: any) {

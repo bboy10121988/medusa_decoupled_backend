@@ -20,7 +20,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
             {},
             {
                 take: 1000,
-                relations: ["application_method"],
+                relations: ["application_method", "campaign"],
             }
         );
 
@@ -65,6 +65,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
                     total_earnings: totalEarnings,
                     confirmed_earnings: confirmedEarnings,
                     created_at: p.metadata?.created_at,
+                    ends_at: p.campaign?.ends_at || null,
                 };
             })
         );

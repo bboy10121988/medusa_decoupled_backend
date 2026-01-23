@@ -49,6 +49,7 @@ export default async function affiliateOrderPlaced({
     let promoCodeHandled = false;
     if (order.promotions && order.promotions.length > 0) {
       for (const promotion of order.promotions) {
+        if (!promotion) continue;
         // 檢查是否為聯盟折扣碼 (metadata 中有 affiliate_id)
         const affiliateId = promotion.metadata?.affiliate_id;
         const commissionRate = promotion.metadata?.commission_rate;
