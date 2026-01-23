@@ -68,10 +68,16 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
                 continue
             }
 
-            try {
-                const promoCode = generateRandomCode()
+            // Retry up to 3 times in case of code collision
+            let retries = 3
+            let promoCode = ''
+            let success = false
 
-                await promotionModuleService.createPromotions({
+            while (retries > 0 && !success) {
+                try {
+                    promoCode = generateRandomCode()
+
+                    await promotionModuleService.createPromotions({
                     code: promoCode,
                     type: "standard",
                     status: "active",
@@ -101,19 +107,27 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
                     }
                 })
 
-                results.push({
-                    affiliate_id: affiliate.id,
-                    code: promoCode,
-                    status: 'created'
-                })
+                    success = true
+                    results.push({
+                        affiliate_id: affiliate.id,
+                        code: promoCode,
+                        status: 'created'
+                    })
 
-                console.log(`[Bulk Promo] Created code ${promoCode} for affiliate ${affiliate.id}`)
-            } catch (error: any) {
-                results.push({
-                    affiliate_id: affiliate.id,
-                    code: '',
-                    status: `error: ${error.message}`
-                })
+                    console.log(`[Bulk Promo] Created code ${promoCode} for affiliate ${affiliate.id}`)
+                } catch (error: any) {
+                    retries--
+                    // If it's a duplicate error and we have retries left, continue
+                    if (retries > 0 && (error.message?.includes('unique') || error.message?.includes('duplicate'))) {
+                        console.log(`[Bulk Promo] Code collision, retrying... (${retries} left)`)
+                        continue
+                    }
+                    results.push({
+                        affiliate_id: affiliate.id,
+                        code: '',
+                        status: `error: ${error.message}`
+                    })
+                }
             }
         }
 
