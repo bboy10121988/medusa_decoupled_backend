@@ -13,5 +13,5 @@ export const AffiliateConversion = model.define("affiliate_conversion", {
   metadata: model.json().nullable(),
 
   affiliate: model.belongsTo(() => Affiliate, { mappedBy: "conversions" }),
-  link: model.belongsTo(() => AffiliateLink, { mappedBy: "conversions_details" }),
+  link: model.belongsTo(() => AffiliateLink, { mappedBy: "conversions_details" }).nullable(),
 })
