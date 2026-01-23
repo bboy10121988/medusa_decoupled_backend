@@ -26,6 +26,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
         // Get parameters from request body
         const body = req.body as any
+        const discountType = body?.discount_type || "percentage"
         const discountValue = body?.discount_value || 10
         const commissionRate = body?.commission_rate || 0.1
 
@@ -83,7 +84,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
                     status: "active",
                     is_automatic: false,
                     application_method: {
-                        type: "percentage",
+                        type: discountType,
                         target_type: "order",
                         allocation: "across",
                         value: discountValue,
