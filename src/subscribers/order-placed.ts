@@ -151,9 +151,9 @@ function generateOrderConfirmationTemplate(data: any): string {
       <h3 style="margin: 0 0 15px 0; color: #856404;">🏦 銀行轉帳付款資訊</h3>
       <p style="margin: 0 0 5px 0; color: #856404;">如您選擇銀行轉帳付款，請依以下帳號進行匯款：</p>
       <div style="background-color: #ffffff; padding: 15px; border-radius: 6px; margin-top: 10px;">
-        <p style="margin: 5px 0;"><strong>銀行：</strong>國泰世華銀行 福和分行 (813)</p>
-        <p style="margin: 5px 0;"><strong>帳號：</strong>216-087-069-471</p>
-        <p style="margin: 5px 0;"><strong>戶名：</strong>提姆的髮藝沙龍</p>
+        <p style="margin: 5px 0;"><strong>銀行：</strong>國泰世華銀行 福和分行 (013)</p>
+        <p style="margin: 5px 0;"><strong>帳號：</strong>216-03-500540-7</p>
+        <p style="margin: 5px 0;"><strong>戶名：</strong>提姆的髮藝沙龍康仲一</p>
       </div>
       <p style="margin: 15px 0 0 0; color: #856404; font-size: 13px;">
         ⚠️ 請於 3 個工作日內完成轉帳，並保留轉帳證明。<br/>
