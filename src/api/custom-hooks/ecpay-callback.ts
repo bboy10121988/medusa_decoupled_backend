@@ -32,8 +32,22 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse, next: Medu
             console.log(action, "Parsed from rawBody:", parsedData)
         }
 
+        // 嘗試從 URL query string 解析（某些綠界回調可能透過 GET）
+        if (!parsedData && req.url) {
+            try {
+                const url = new URL(req.url, "http://localhost")
+                if (url.searchParams.toString()) {
+                    console.log(action, "Attempting to parse from URL query params...")
+                    parsedData = Object.fromEntries(url.searchParams.entries()) as any
+                }
+            } catch (e) {
+                console.log(action, "URL parsing failed:", e)
+            }
+        }
+
         if (!parsedData) {
-            throw new Error("Request body is empty and rawBody parsing failed")
+            console.error(action, "All body parsing methods failed. Headers:", req.headers["content-type"])
+            throw new Error("Request body is empty and all parsing methods failed")
         }
 
         const data: EcpayCallbackBody = parsedData
@@ -44,10 +58,11 @@ const ecpayCallBack = async (req: MedusaRequest, res: MedusaResponse, next: Medu
         let paymentCollectionID: string = ""
         let paymentSessionID: string = ""
 
-        if (!data.PaymentType || data.PaymentType !== "Credit_CreditCard") {
-            console.log(action, "Only Credit_CreditCard is supported, got:", data.PaymentType)
-            throw new Error("Only Credit_CreditCard is supported")
+        if (!data.PaymentType) {
+            console.log(action, "PaymentType is missing from callback data")
+            throw new Error("PaymentType is missing")
         }
+        console.log(action, "PaymentType:", data.PaymentType)
 
 
         if (!data.CustomField2) {
