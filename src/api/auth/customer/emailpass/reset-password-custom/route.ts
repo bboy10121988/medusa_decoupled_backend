@@ -181,38 +181,40 @@ export const POST = async (
       const customer = customers[0]
       console.log('✅ 找到客戶:', customer.id)
       
-      // 查找客戶的 auth identity
-      const authIdentities = await authModuleService.listAuthIdentities({}, {
-        relations: ["provider_identities"]
-      })
-      
-      if (!authIdentities || authIdentities.length === 0) {
-        console.log('⚠️ 找不到認證身份:', customer.id)
+      // 查找認證身份 - 用 raw SQL 直接查 provider_identity
+      // emailpass: entity_id = email
+      // google: entity_id = Google 用戶 ID, email 存在 user_metadata.email
+      const { Client } = require("pg")
+      const pgClient = new Client({ connectionString: process.env.DATABASE_URL })
+      await pgClient.connect()
+
+      let providerRows: any[] = []
+      try {
+        const result = await pgClient.query(
+          "SELECT provider, entity_id, auth_identity_id, user_metadata FROM provider_identity WHERE entity_id = $1 OR user_metadata->>'email' = $1 LIMIT 5",
+          [identifier]
+        )
+        providerRows = result.rows || []
+      } finally {
+        await pgClient.end()
+      }
+
+      console.log("🔍 查到 provider_identity:", providerRows.length, "筆")
+
+      if (providerRows.length === 0) {
+        console.log("⚠️ 找不到認證身份:", customer.id)
         return res.status(201).json({
-          message: 'If the email exists, a reset link has been sent'
+          message: "If the email exists, a reset link has been sent"
         })
       }
 
-      // 檢查用戶的認證提供者 - 每個 Email 只有一種認證方式
-      const customerAuthIdentities = authIdentities.filter(
-        (identity: any) => identity.entity_id === customer.id
-      )
-      
-      if (customerAuthIdentities.length === 0) {
-        console.log('⚠️ 找不到認證身份:', customer.id)
-        return res.status(201).json({
-          message: 'If the email exists, a reset link has been sent'
-        })
-      }
-      
-      // 檢查認證提供者類型
-      const firstIdentity = customerAuthIdentities[0]
-      const authProvider = (firstIdentity as any)?.provider || (firstIdentity as any)?.provider_id
+      // 取第一個認證提供者
+      const authProvider = providerRows[0].provider
       
       console.log('🔍 客戶認證提供者:', {
         authProvider,
         customerId: customer.id,
-        totalIdentities: customerAuthIdentities.length
+        totalIdentities: providerRows.length
       })
       
       // 如果是 Google 用戶，發送 Google 登入提醒
