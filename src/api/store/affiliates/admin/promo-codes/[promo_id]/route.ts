@@ -46,9 +46,13 @@ export async function PUT(req: MedusaRequest, res: MedusaResponse) {
         // Build update object for promotion
         const promotionUpdate: any = { id: promo_id }
 
-        // Update status if provided
+        // Update status if provided (map invalid values to valid Medusa statuses)
         if (body.status !== undefined) {
-            promotionUpdate.status = body.status
+            const statusMap: Record<string, string> = {
+                disabled: "inactive",
+                enabled: "active",
+            }
+            promotionUpdate.status = statusMap[body.status] || body.status
         }
 
         // Update metadata if commission_rate is provided

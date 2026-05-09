@@ -116,7 +116,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
         }
 
         const promoCode = body.code.toUpperCase()
-        const promotion = await promotionModuleService.createPromotions({
+        const result = await promotionModuleService.createPromotions({
             code: promoCode,
             type: "standard",
             status: "active",
@@ -146,6 +146,8 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
                 ...(body.ends_at && { ends_at: new Date(body.ends_at) }),
             }
         })
+
+        const promotion = Array.isArray(result) ? result[0] : result
 
         res.status(201).json({
             message: "Promo code created successfully",
